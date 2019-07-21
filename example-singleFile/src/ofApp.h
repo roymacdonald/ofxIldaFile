@@ -24,17 +24,7 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
 
 	
-	
-	
-	size_t fileIndex = 0;
-	ofDirectory dir;
-
-
-	void openIldaDir();
-	void openIldaFile();
 
 	ofxIldaFile ildaFile;
-	
-	string currentFileName, currentFolder;
 	
 };
