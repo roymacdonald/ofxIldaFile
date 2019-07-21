@@ -4,8 +4,11 @@
 class ofxIldaFile {
 public:
 	ofxIldaFile();
+	friend class ofxIldaFileDirectory;
 	
 	bool load(const string& filepath);
+	
+	bool loadDialog();
 	
 	void draw(const ofRectangle & viewport = ofGetCurrentViewport(), bool bDrawBounds = true);
 	
@@ -14,7 +17,11 @@ public:
 	const vector<ofxIldaFileFrame>& getFrames() const;
 	const string& getFilepath();
 protected:
-	int frameRate = 1;
+	float frameduration = 0;
+	int scanrate = 0;
+	
+	float lastFrameTime = 0;
+	
 	size_t currentFrame = 0;
 	
 	vector<ofxIldaFileFrame> frames;

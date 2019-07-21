@@ -1,5 +1,5 @@
 #include "ofxIldaFile.h"
-#include "ofxIldaFileRenderer.h"
+
 //--------------------------------------------------------------
 ofxIldaFile::ofxIldaFile(){
 	cam.removeAllInteractions();
@@ -10,6 +10,16 @@ ofxIldaFile::ofxIldaFile(){
 	cam.setNearClip(-1000000);
 	cam.setFarClip(1000000);
 	cam.setVFlip(false);
+}
+//--------------------------------------------------------------
+bool ofxIldaFile::loadDialog(){
+	auto r = ofSystemLoadDialog("Select an .ild file");
+	if(r.bSuccess){
+		if( ofToLower(ofFilePath::getFileExt(r.getPath())) == "ild"){
+			return load(r.getPath());
+		}
+	}
+	return false;
 }
 //--------------------------------------------------------------
 bool ofxIldaFile::load(const string& filepath){
@@ -35,7 +45,7 @@ bool ofxIldaFile::load(const string& filepath){
 		cout << "----------"<<endl;
 		cout << f;
 	}
-	return true;
+	return frames.size() > 0;
 }
 //--------------------------------------------------------------
 void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
@@ -51,8 +61,11 @@ void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 		}
 		frames[currentFrame].path.draw();
 		cam.end();
-		if(ofGetFrameNum()%frameRate == 0){
-			(++ currentFrame) %= frames.size();
+		if( ofGetElapsedTimef() - lastFrameTime > frameduration){
+			if(lastFrameTime != 0){
+				(++ currentFrame) %= frames.size();
+			}
+			lastFrameTime = ofGetElapsedTimef();
 		}
 	}
 }
@@ -60,7 +73,9 @@ void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 void ofxIldaFile::reset(){
 	filepath = "";
 	frames.clear();
-	frameRate = 1;
+	frameduration = 0;
+	scanrate = 0;
+
 	currentFrame = 0;
 }
 //--------------------------------------------------------------
