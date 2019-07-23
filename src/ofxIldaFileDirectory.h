@@ -11,24 +11,45 @@
 
 class ofxIldaFileDirectory{
 public:
+	ofxIldaFileDirectory();
+	bool loadDir(const string& dirPath, bool preloadAll = true);
+	bool loadDialog(bool preloadAll = true);
 	
-	bool loadDir(const string& dirPath);
+	void saveDir(string dirPath);
+	void saveDialog();
 	
-	bool loadDialog();
+	
+	bool isFilesPreloaded();
 	
 	void close();
 	
 	void loadNextFile();
 	void loadPrevFile();
 	
-	ofxIldaFile ildaFile;
+	void drawCurrentFile();
+	
+	string getCurrentFileInfo();
 	
 	size_t size();
 	bool loadFileAtIndex(size_t index);
 	
 	size_t getCurrentFileIndex();
 	
+	
+	std::shared_ptr<ofxIldaFile> & getCurrentFile();
+	const std::shared_ptr<ofxIldaFile> & getCurrentFile() const;
+	
+	
+	std::vector<std::shared_ptr<ofxIldaFile>>& getIldaFiles();
+	const std::vector<std::shared_ptr<ofxIldaFile>>& getIldaFiles() const;
+	
+//	bool loadFileByName(const string& name);
+	
 protected:
+	
+	bool loadFile(ofxIldaFile& file, const string& filepath);
+	
+	std::vector<std::shared_ptr<ofxIldaFile>> ildaFiles;
 	
 	bool findPrgFile(const string& dirpath);
 	void readPrgFile(const string& filepath);
@@ -45,4 +66,5 @@ protected:
 	
 	ofDirectory dir;
 	size_t fileIndex = 0;
+	bool bFilesPreloaded  = false;
 };

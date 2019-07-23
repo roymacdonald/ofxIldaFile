@@ -536,4 +536,18 @@ static vector<ofColor>& ilda_alt_color_palette(){
 	}
 	return *p;
 }
-	
+
+
+static int findColorInPalette(const ofColor& color, const vector<ofColor>& palette){
+	for(size_t i = 0; i < palette.size(); i++){
+		if(palette[i] == color) return i;
+	}
+	return -1;
+}
+static int findColorInPalette(const ofColor& color, bool bUseStandardPalette = true){
+	if(bUseStandardPalette){
+		return findColorInPalette(color, ilda_standard_color_palette());
+	}
+	return findColorInPalette(color, ilda_alt_color_palette());
+}
+

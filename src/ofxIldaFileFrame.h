@@ -16,6 +16,8 @@ public:
 	
 	bool readFromBuffer(ofBuffer& buffer, size_t startIndex);
 	
+	void writeToBuffer(ofBuffer& buffer);
+	
 	const int& getFormat() const;
 	const string& getFrameName() const;
 	const string& getCompanyName() const;
@@ -30,21 +32,31 @@ public:
 	
 	int getNumDataBytesForFormat();
 	
-	
-
+	bool isDataNormalized();
 	
 	friend std::ostream& operator << (std::ostream& os, const ofxIldaFileFrame& f);
 	
 	
 	ofMesh path;
 	
+	string getAsString();
+	bool bFrameSet = false;
+	
+	static ofxIldaFileFrame getEndFrame(const ofxIldaFileFrame& refFrame);
+	
 protected:
 	
 	bool readHeader(ofBuffer& buffer, size_t startIndex);
 	void decodeData(char * d, size_t size, bool bNormalize = true);	
 	
-	void readStatusCode(char * d, size_t i);
+	void writeHeader(ofBuffer& buffer);
+	void encodeData(ofBuffer& buffer);
+	
+	
+	
+//	void readStatusCode(char * d, size_t i);
 	int getColorOffset();
+	int getStatusCodeOffset();
 	
 	int format;
 	string frame_name;
@@ -55,5 +67,8 @@ protected:
 	char status_code;
 	char scanner;
 	size_t start_id;
+	
+	
+	bool bNormalizedData;
 	
 };

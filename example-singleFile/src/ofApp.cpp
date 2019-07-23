@@ -18,6 +18,7 @@ void ofApp::draw(){
 	stringstream ss;
 	ss << "Press [ key ] for:\n";
 	ss << " [ l ] : load a single .ild file.\n";
+	ss << " [ s ] : save a single .ild file.\n";
 	ss << endl;
 	ss << "Current file : " << ildaFile.getFilepath() << endl;
 	
@@ -36,6 +37,8 @@ void ofApp::keyPressed(int key){
 void ofApp::keyReleased(int key){
 	if(key == 'l'){
 		ildaFile.loadDialog();
+	}else if(key == 's'){
+		ildaFile.saveDialog();
 	}
 }
 

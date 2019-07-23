@@ -14,17 +14,13 @@ void ofApp::update(){
 void ofApp::draw(){
 	ofBackground(60);
 	ofSetColor(255);
-	ildaDir.ildaFile.draw();
+	ildaDir.drawCurrentFile();
 	
 	stringstream ss;
 	ss << "Press [ key ] for:\n";
 	ss << " [ d ] : load directory with .ild files and browse these.\n";
 	ss << endl;
-	string path = ildaDir.ildaFile.getFilepath();
-	ss << "Current file : " << ofFilePath::getFileName(path) << endl;
-	
-	ss << "Current folder : " << ofFilePath::getEnclosingDirectory(path) << endl;
-	ss << "Current file index: " << ildaDir.getCurrentFileIndex() << endl;
+	ss << ildaDir.getCurrentFileInfo();
 	
 	ofBitmapFont bf;
 	auto bb = bf.getBoundingBox(ss.str(), 0, 0);
@@ -41,6 +37,8 @@ void ofApp::keyPressed(int key){
 void ofApp::keyReleased(int key){
 	if(key == 'd'){
 		ildaDir.loadDialog();
+	}else if(key == 's'){
+		ildaDir.saveDialog();
 	}else if(key == OF_KEY_DOWN){
 		ildaDir.loadNextFile();
 	}else if(key == OF_KEY_UP){
