@@ -178,3 +178,14 @@ string ofxIldaFile::getValidName(const string& _name){
 	return _name.substr(0, 8);
 }
 
+//--------------------------------------------------------------
+ofxIldaFileFrame& ofxIldaFile::addFrame(){
+	frames.push_back(ofxIldaFileFrame());
+	return frames.back();
+}
+//--------------------------------------------------------------
+ofxIldaFileFrame& ofxIldaFile::addFrame(const ofxIldaFileFrame& f){
+	frames.push_back(f);
+	return frames.back();
+}
+//--------------------------------------------------------------

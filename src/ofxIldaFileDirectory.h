@@ -12,11 +12,13 @@
 class ofxIldaFileDirectory{
 public:
 	ofxIldaFileDirectory();
-	bool loadDir(const string& dirPath, bool preloadAll = true);
-	bool loadDialog(bool preloadAll = true);
+	bool loadDir(const string& dirPath, bool preloadAll = false);
+	bool loadDialog(bool preloadAll = false);
 	
 	void saveDir(string dirPath);
 	void saveDialog();
+	
+	std::shared_ptr<ofxIldaFile> addNewFile(const string& name, float frameDuration, int scanrate);
 	
 	
 	bool isFilesPreloaded();

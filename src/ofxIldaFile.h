@@ -33,6 +33,9 @@ public:
 	static string getValidPath(const string& filepath);
 	static string getValidName(const string& _name);
 	
+	ofxIldaFileFrame& addFrame();
+	ofxIldaFileFrame& addFrame(const ofxIldaFileFrame& f);
+	
 protected:
 	string name = "";
 	float frameduration = 0;

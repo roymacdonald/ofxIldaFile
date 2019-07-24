@@ -264,3 +264,8 @@ string ofxIldaFileDirectory::getCurrentFileInfo(){
 	}
 	return ss.str();
 }
+//--------------------------------------------------------------
+std::shared_ptr<ofxIldaFile> ofxIldaFileDirectory::addNewFile(const string& name, float frameDuration, int scanrate){
+	ildaFiles.push_back(make_shared<ofxIldaFile>(name, frameDuration, scanrate));
+	return ildaFiles.back();
+}
