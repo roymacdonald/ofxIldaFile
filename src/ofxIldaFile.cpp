@@ -53,6 +53,7 @@ bool ofxIldaFile::load(const string& filepath){
 			}
 			i++;
 		}
+		cout << ofToString(frame.path.getVertices())<<endl;
 	}
 //	for(auto&f: frames){
 //		cout << "----------"<<endl;
@@ -69,9 +70,17 @@ void ofxIldaFile::save(const string& filepath){
 	ofBuffer buffer;
 
 	for (size_t i=0 ; i< frames.size() ; i++){
+		frames[i].frame_number=i;
+		frames[i].total_frame = frames.size();
 		frames[i].writeToBuffer(buffer);
-	}
+		
 
+	}
+	for(auto&f: frames){
+		cout << "----------"<<endl;
+		cout << f;
+	}
+	
 	if(buffer.size() > 0 && frames.size() > 0) {
 		
 		ofxIldaFileFrame::getEndFrame(frames.back()).writeToBuffer(buffer);
@@ -104,15 +113,22 @@ void ofxIldaFile::saveDialog(){
 void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 	if(currentFrame < frames.size()){
 		cam.begin();
-		ofScale(min(viewport.width, viewport.height)*0.5f);
+		ofPushMatrix();
+//		if(frames[currentFrame].isDataNormalized()){
+			ofScale(min(viewport.width, viewport.height)*0.5f);
+		
+		//		}
 		if(bDrawBounds){
-		ofPushStyle();
-		ofSetColor(255);
-		ofNoFill();
-		ofDrawRectangle(-1, -1, 2, 2);
-		ofPopStyle();
+			ofPushStyle();
+			ofSetColor(255);
+			ofNoFill();
+			ofDrawRectangle(-1, -1, 2, 2);
+			ofPopStyle();
 		}
-		frames[currentFrame].path.draw();
+		
+		frames[currentFrame].normalizedPath.draw(); // path.draw();
+		
+		ofPopMatrix();
 		cam.end();
 		if( ofGetElapsedTimef() - lastFrameTime > frameduration){
 			if(lastFrameTime != 0){

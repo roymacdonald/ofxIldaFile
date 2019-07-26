@@ -47,7 +47,7 @@ protected:
 	
 	vector<ofxIldaFileFrame> frames;
 	
-	string filepath;
+	string filepath ="";
 	ofEasyCam cam;
 
 	
