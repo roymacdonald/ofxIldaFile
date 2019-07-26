@@ -12,8 +12,8 @@
 class ofxIldaFileDirectory{
 public:
 	ofxIldaFileDirectory();
-	bool loadDir(const string& dirPath, bool preloadAll = false);
-	bool loadDialog(bool preloadAll = false);
+	bool loadDir(const string& dirPath, bool preloadAll = true);
+	bool loadDialog(bool preloadAll = true);
 	
 	void saveDir(string dirPath);
 	void saveDialog();
@@ -33,14 +33,12 @@ public:
 	string getCurrentFileInfo();
 	
 	size_t size();
-	bool loadFileAtIndex(size_t index);
+	bool loadFileAtIndex(size_t index, string filepath = "");
 	
 	size_t getCurrentFileIndex();
 	
 	
-	std::shared_ptr<ofxIldaFile> & getCurrentFile();
-	const std::shared_ptr<ofxIldaFile> & getCurrentFile() const;
-	
+	std::shared_ptr<ofxIldaFile> getCurrentFile();
 	
 	std::vector<std::shared_ptr<ofxIldaFile>>& getIldaFiles();
 	const std::vector<std::shared_ptr<ofxIldaFile>>& getIldaFiles() const;
@@ -49,7 +47,7 @@ public:
 	
 protected:
 	
-	bool loadFile(ofxIldaFile& file, const string& filepath);
+//	bool loadFile(ofxIldaFile& file, const string& filepath);
 	
 	std::vector<std::shared_ptr<ofxIldaFile>> ildaFiles;
 	
