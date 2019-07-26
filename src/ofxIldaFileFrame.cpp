@@ -8,6 +8,40 @@
 
 #include "ofxIldaFileFrame.h"
 
+
+ofxIldaFileFrame::ofxIldaFileFrame(const int& format, const string& frameName, const string& companyName){
+	setup(format, frameName, companyName);
+}
+//--------------------------------------------------------------
+void ofxIldaFileFrame::setup(const int& format, const string& frameName, const string& companyName ){
+	this->format = format;
+	this->frame_name = frameName;
+	this->company_name = companyName;
+//	this->bNormalizedData = bNormalizeData;
+	resetPaths();
+}
+//--------------------------------------------------------------
+void ofxIldaFileFrame::addPoint(glm::vec3 point, const ofColor& color, bool bIsNormalized){
+//	if(bIsNormalized && !bNormalizedData){
+	if(bIsNormalized){
+		normalizedPath.addVertex(point);
+		unnormalizePoint(point);
+		path.addVertex(point);
+	}else{// if(!bIsNormalized && bNormalizedData){
+		path.addVertex(point);
+		normalizePoint(point);
+		normalizedPath.addVertex(point);
+	}
+//	cout << point << endl;
+//	path.addVertex(point);
+	path.addColor(color);
+	normalizedPath.addColor(color);
+	
+	
+//	point_number = path.getNumVertices();
+}
+
+
 void padStringEnd(string& s){
 	if(s.length() < 8){
 		s += string(8-s.length(), '-');
@@ -16,7 +50,7 @@ void padStringEnd(string& s){
 }
 
 //--------------------------------------------------------------
-bool ofxIldaFileFrame::readHeader(ofBuffer& buffer, size_t i){
+size_t ofxIldaFileFrame::readHeader(ofBuffer& buffer, size_t i){
 	char* b = buffer.getData();
 	string bStr = buffer.getText();
 	
@@ -24,7 +58,7 @@ bool ofxIldaFileFrame::readHeader(ofBuffer& buffer, size_t i){
 		//bytes 4, 5 and 6 are reserved, these must be zero
 		format =  b[i+7];// byte 7
 		if ( format >=0  && format <= 5 && format != 3){
-			point_number = getShortFromChars(b, i+24);
+			size_t point_number = getShortFromChars(b, i+24);
 //			if ( point_number > 0 ){
 				frame_name = bStr.substr(i+8, 8);
 				company_name = bStr.substr(i+16, 8);
@@ -36,7 +70,7 @@ bool ofxIldaFileFrame::readHeader(ofBuffer& buffer, size_t i){
 				start_id=i;
 //				return true;
 				bFrameSet = true;
-			return  point_number > 0;
+			return  point_number;
 //			}
 		} else{
 			ofLogError("ofxIldaFileFrame::readHeader") << "invalid ilda frame format";
@@ -63,7 +97,7 @@ void ofxIldaFileFrame::writeHeader(ofBuffer& buffer){
 	
 	setFromString(frame_name, 8, b);
 	setFromString(company_name, 16, b);
-	setShortIntoChars(b, point_number, 24);
+	setShortIntoChars(b, getNumPoints(), 24);
 	setShortIntoChars(b, frame_number, 26);
 	setShortIntoChars(b, total_frame,  28);
 	b[30] = (scanner & 0xFF);
@@ -73,8 +107,10 @@ void ofxIldaFileFrame::writeHeader(ofBuffer& buffer){
 }
 //--------------------------------------------------------------
 bool ofxIldaFileFrame::readFromBuffer(ofBuffer& buffer, size_t startIndex){
-	if(readHeader(buffer, startIndex)){
-		decodeData(buffer.getData(), buffer.size());
+	auto numPoints = readHeader(buffer, startIndex);
+	if(numPoints){
+//		decodeData(buffer.getData(), numPoints, buffer.size());
+		decodeData(buffer, numPoints);
 		return true;
 	}
 	return false;
@@ -85,14 +121,17 @@ void ofxIldaFileFrame::writeToBuffer(ofBuffer& buffer){
 	encodeData(buffer);
 }
 //--------------------------------------------------------------
-void ofxIldaFileFrame::decodeData(char * d, size_t size, bool bNormalize){
-	path.clear();
-	path.setMode(OF_PRIMITIVE_LINE_STRIP);
-	
-	bNormalizedData = bNormalize;
+//void ofxIldaFileFrame::decodeData(char * d, size_t num_points, size_t size, bool bNormalize){
+void ofxIldaFileFrame::decodeData(ofBuffer& buffer, size_t num_points){
+//	cout << "ofxIldaFileFrame::decodeData " << num_points << endl;
+//	path.clear();
+//	path.setMode(OF_PRIMITIVE_LINE_STRIP);
+	resetPaths();	
+//	bNormalizedData = true;//bNormalize;
+	char * d = buffer.getData();
 	
 	auto stride = getNumDataBytesForFormat();
-	size_t end = std::min(start_id + 32 + (point_number * stride), size);
+	size_t end = std::min(start_id + 32 + (num_points * stride), buffer.size());
 	
 	for(size_t i = start_id + 32;  i < end; i+= stride){
 		
@@ -100,14 +139,15 @@ void ofxIldaFileFrame::decodeData(char * d, size_t size, bool bNormalize){
 		if(format == 0 || format == 4){
 			v.z = getShortFromChars(d, i + 4);
 		}
-		if(bNormalize){
-			v.x = ofMap(v.x, -32768, 32767, -1, 1);
-			v.y = ofMap(v.y, -32768, 32767, -1, 1);
-			if(format == 0 || format == 4){
-				v.z = ofMap(v.z, -32768, 32767, -1, 1);
-			}
-		}
-		path.addVertex(v);
+//		if(bNormalize){
+//			normalizePoint(v);
+//			v.x = ofMap(v.x, -32768, 32767, -1, 1);
+//			v.y = ofMap(v.y, -32768, 32767, -1, 1);
+//			if(format == 0 || format == 4){
+//				v.z = ofMap(v.z, -32768, 32767, -1, 1);
+//			}
+//		}
+//		path.addVertex(v);
 		ofColor  c;
 		int colorOffset = getColorOffset();
 		if(format == 0 || format == 1){
@@ -119,15 +159,14 @@ void ofxIldaFileFrame::decodeData(char * d, size_t size, bool bNormalize){
 		}
 //		readStatusCode(d, i);
 		int statusOffset = getStatusCodeOffset();
-		if(statusOffset < 0){
-			status_code = 0;
-		}else{
-			status_code = d[i+statusOffset];
+		if(statusOffset >= 0){
+			char status_code = d[i+statusOffset];
 			if(((status_code >> 6) & 0x01) == 1){
 				c.a = 0;
 			}
 		}
-		path.addColor(c);
+//		path.addColor(c);
+		addPoint(v, c, false);
 	}	
 }
 //--------------------------------------------------------------
@@ -147,13 +186,9 @@ void ofxIldaFileFrame::encodeData(ofBuffer& buffer){
 		ofColor  c = colors[i];
 		
 		
-		if(bNormalizedData){
-			v.x = ofMap(v.x, -1, 1, -32768, 32767);
-			v.y = ofMap(v.y, -1, 1, -32768, 32767);
-			if(format == 0 || format == 4){
-				v.z = ofMap(v.z, -1, 1, -32768, 32767);
-			}
-		}
+//		if(bNormalizedData){
+//			unnormalizePoint(v);
+//		}
 		
 		setShortIntoChars(d, v.x, 0);
 		setShortIntoChars(d, v.y, 2);
@@ -180,7 +215,7 @@ void ofxIldaFileFrame::encodeData(ofBuffer& buffer){
 		}
 		int statusOffset = getStatusCodeOffset();
 		if(statusOffset > 0){
-			status_code = 0;
+			char status_code = 0;
 			if(c.a == 0){
 				status_code |= (1 << 6) & 0xFF;
 			}
@@ -197,11 +232,12 @@ std::ostream& operator << (std::ostream& os, const ofxIldaFileFrame& f) {
 	os << "format " << f.format <<"\n";
 	os << "frame_name " << f.frame_name <<"\n";
 	os << "company_name " << f.company_name <<"\n";
-	os << "point_number " << f.point_number <<"\n";
+	os << "point_number " << f.getNumPoints() <<"\n";
 	os << "frame_number " << f.frame_number <<"\n";
 	os << "total_frame " << f.total_frame <<"\n";
 	os << "scanner " << (int)f.scanner <<"\n";
 	os << "start_id " << f.start_id <<"\n";
+//	os << "normalized points: " << std::boolalpha << f.bNormalizedData;
 	return os;
 }
 string ofxIldaFileFrame::getAsString(){
@@ -209,11 +245,11 @@ string ofxIldaFileFrame::getAsString(){
 	ss << format << ", " ;
 	ss << frame_name << ", " ;
 	ss << company_name << ", " ;
-	ss << " p - "<<point_number << ", " ;
+	ss << " p - "<< getNumPoints() << ", " ;
 	ss << frame_number << ", " ;
 	ss << total_frame << ", " ;
 	ss << (int)scanner << ", " ;
-	ss << bitset<8>(status_code);
+//	ss << bitset<8>(status_code);
 //	ss << start_id ;
 	return ss.str();
 }
@@ -222,8 +258,8 @@ ofxIldaFileFrame ofxIldaFileFrame::getEndFrame(const ofxIldaFileFrame& refFrame)
 	f.format = refFrame.getFormat();
 	f.frame_name = "";
 	f.company_name = refFrame.getCompanyName();
-	f.point_number = 0;
-	f.status_code =  0x11000000;
+//	f.point_number = 0;
+//	f.status_code =  0x11000000;
 	f.frame_number = 0;
 	f.total_frame = refFrame.getTotalFrames();
 	f.scanner = 0;
@@ -243,8 +279,9 @@ const string& ofxIldaFileFrame::getCompanyName() const {
 	return company_name; 
 }
 //--------------------------------------------------------------
-const size_t& ofxIldaFileFrame::getPointNumber() const {
-	return point_number; 
+ size_t ofxIldaFileFrame::getNumPoints() const{
+	return path.getVertices().size();
+//	return point_number; 
 }
 //--------------------------------------------------------------
 const size_t& ofxIldaFileFrame::getFrameNumber() const {
@@ -253,10 +290,6 @@ const size_t& ofxIldaFileFrame::getFrameNumber() const {
 //--------------------------------------------------------------
 const size_t& ofxIldaFileFrame::getTotalFrames() const {
 	return total_frame; 
-}
-//--------------------------------------------------------------
-const char& ofxIldaFileFrame::getStatusCode() const {
-	return status_code; 
 }
 //--------------------------------------------------------------
 const char& ofxIldaFileFrame::getScanner() const {
@@ -268,7 +301,7 @@ const size_t& ofxIldaFileFrame::getStartIndex() const {
 }
 //--------------------------------------------------------------
 size_t ofxIldaFileFrame::getDataSize(){
-	return getNumDataBytesForFormat() * point_number;
+	return getNumDataBytesForFormat() * getNumPoints();
 }
 //--------------------------------------------------------------
 int ofxIldaFileFrame::getNumDataBytesForFormat(){
@@ -300,7 +333,30 @@ int ofxIldaFileFrame::getColorOffset(){
 	}
 	return -1;
 }
+////--------------------------------------------------------------
+//bool ofxIldaFileFrame::isDataNormalized(){
+//	return bNormalizedData;
+//}
 //--------------------------------------------------------------
-bool ofxIldaFileFrame::isDataNormalized(){
-	return bNormalizedData;
+void ofxIldaFileFrame::resetPaths(){
+	path.clear();
+	path.setMode(OF_PRIMITIVE_LINE_STRIP);
+	
+	normalizedPath.clear();
+	normalizedPath.setMode(OF_PRIMITIVE_LINE_STRIP);
+
+}
+//--------------------------------------------------------------
+void ofxIldaFileFrame::normalizePoint(glm::vec3& point){
+	point.x = ofMap(point.x, -32768, 32767, -1, 1);
+	point.y = ofMap(point.y, -32768, 32767, -1, 1);
+	point.z = ofMap(point.z, -32768, 32767, -1, 1);
+
+}
+//--------------------------------------------------------------
+void ofxIldaFileFrame::unnormalizePoint(glm::vec3& point){
+	point.x = ofMap(point.x, -1, 1, -32768, 32767);
+	point.y = ofMap(point.y, -1, 1, -32768, 32767);
+	point.z = ofMap(point.z, -1, 1, -32768, 32767);
+
 }
