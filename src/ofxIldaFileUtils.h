@@ -7,6 +7,7 @@
 //
 
 #pragma once
+#include "ofxIldaFileConstants.h"
 inline short getShortFromChars(char* b, size_t index){
 	return ((b[index] & 0xFF) << 8) | (b[index+1] & 0xFF);
 }
@@ -23,3 +24,16 @@ inline void decrementAndWrap(size_t& i, const size_t& limit){
 	}
 }
 
+inline bool ifFormat3D(const ofxIldaFileFormat& format){
+	return (format == OFX_ILDAFILE_FORMAT_3D_INDEXED_COLOR || format == OFX_ILDAFILE_FORMAT_3D_TRUE_COLOR);
+}
+inline bool ifFormat2D(const ofxIldaFileFormat& format){
+	return (format == OFX_ILDAFILE_FORMAT_2D_INDEXED_COLOR || format == OFX_ILDAFILE_FORMAT_2D_INDEXED_COLOR);
+}
+
+inline bool ifFormatTrueColor(const ofxIldaFileFormat& format){
+	return (format == OFX_ILDAFILE_FORMAT_3D_TRUE_COLOR || format == OFX_ILDAFILE_FORMAT_2D_TRUE_COLOR);
+}
+inline bool ifFormatIndexedColor(const ofxIldaFileFormat& format){
+	return (format == OFX_ILDAFILE_FORMAT_3D_INDEXED_COLOR || format == OFX_ILDAFILE_FORMAT_2D_INDEXED_COLOR);
+}
