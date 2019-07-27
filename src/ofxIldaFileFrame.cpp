@@ -9,11 +9,11 @@
 #include "ofxIldaFileFrame.h"
 
 
-ofxIldaFileFrame::ofxIldaFileFrame(const int& format, const string& frameName, const string& companyName){
+ofxIldaFileFrame::ofxIldaFileFrame(const ofxIldaFileFormat& format, const string& frameName, const string& companyName){
 	setup(format, frameName, companyName);
 }
 //--------------------------------------------------------------
-void ofxIldaFileFrame::setup(const int& format, const string& frameName, const string& companyName ){
+void ofxIldaFileFrame::setup(const ofxIldaFileFormat& format, const string& frameName, const string& companyName ){
 	this->format = format;
 	this->frame_name = frameName;
 	this->company_name = companyName;
@@ -56,29 +56,30 @@ size_t ofxIldaFileFrame::readHeader(ofBuffer& buffer, size_t i){
 	
 	if(bStr.substr(i, 4) == "ILDA"){//bytes 0,1,2,3
 		//bytes 4, 5 and 6 are reserved, these must be zero
-		format =  b[i+7];// byte 7
-		if ( format >=0  && format <= 5 && format != 3){
-			size_t point_number = getShortFromChars(b, i+24);
-//			if ( point_number > 0 ){
-				frame_name = bStr.substr(i+8, 8);
-				company_name = bStr.substr(i+16, 8);
-			
-				frame_number=  getShortFromChars(b, i+26);//(((b[i+26] & 0xFF) << 8) | (b[i+27] & 0xFF));
-				total_frame=  getShortFromChars(b, i+28);//(((b[i+28] & 0xFF) << 8) | (b[i+29] & 0xFF));
-				scanner=  (b[i+30] & 0xFF);
-
-				start_id=i;
-//				return true;
-				bFrameSet = true;
-			return  point_number;
-//			}
-		} else{
+		int fmt = b[i+7];
+		if(!validateFormat(fmt)){
 			ofLogError("ofxIldaFileFrame::readHeader") << "invalid ilda frame format";
+			return 0;
 		}
+		format =  (ofxIldaFileFormat) fmt;
+		size_t point_number = getShortFromChars(b, i+24);
+		
+		frame_name = bStr.substr(i+8, 8);
+		company_name = bStr.substr(i+16, 8);
+		
+		frame_number=  getShortFromChars(b, i+26);//(((b[i+26] & 0xFF) << 8) | (b[i+27] & 0xFF));
+		total_frame=  getShortFromChars(b, i+28);//(((b[i+28] & 0xFF) << 8) | (b[i+29] & 0xFF));
+		scanner=  (b[i+30] & 0xFF);
+		
+		start_id=i;
+		
+		bFrameSet = true;
+		return  point_number;
+		
 	}
 	return false;
 }
-
+//--------------------------------------------------------------
 void setFromString(const string & s, size_t start, std::vector<char> &b){
 	
 	for(size_t i = 0; i < s.size() && i + start < b.size(); i++){
@@ -93,7 +94,7 @@ void ofxIldaFileFrame::writeHeader(ofBuffer& buffer){
 	
 	setFromString("ILDA", 0, b);
 
-	b[7] = format; // byte 7
+	b[7] = (char)format; // byte 7
 	
 	setFromString(frame_name, 8, b);
 	setFromString(company_name, 16, b);
@@ -121,13 +122,8 @@ void ofxIldaFileFrame::writeToBuffer(ofBuffer& buffer){
 	encodeData(buffer);
 }
 //--------------------------------------------------------------
-//void ofxIldaFileFrame::decodeData(char * d, size_t num_points, size_t size, bool bNormalize){
 void ofxIldaFileFrame::decodeData(ofBuffer& buffer, size_t num_points){
-//	cout << "ofxIldaFileFrame::decodeData " << num_points << endl;
-//	path.clear();
-//	path.setMode(OF_PRIMITIVE_LINE_STRIP);
 	resetPaths();	
-//	bNormalizedData = true;//bNormalize;
 	char * d = buffer.getData();
 	
 	auto stride = getNumDataBytesForFormat();
@@ -136,21 +132,12 @@ void ofxIldaFileFrame::decodeData(ofBuffer& buffer, size_t num_points){
 	for(size_t i = start_id + 32;  i < end; i+= stride){
 		
 		glm::vec3 v ={getShortFromChars(d, i), getShortFromChars(d, i+2), 0};
-		if(format == 0 || format == 4){
+		if(ifFormat3D(format)){
 			v.z = getShortFromChars(d, i + 4);
 		}
-//		if(bNormalize){
-//			normalizePoint(v);
-//			v.x = ofMap(v.x, -32768, 32767, -1, 1);
-//			v.y = ofMap(v.y, -32768, 32767, -1, 1);
-//			if(format == 0 || format == 4){
-//				v.z = ofMap(v.z, -32768, 32767, -1, 1);
-//			}
-//		}
-//		path.addVertex(v);
 		ofColor  c;
 		int colorOffset = getColorOffset();
-		if(format == 0 || format == 1){
+		if(ifFormatIndexedColor(format)){
 			c = ilda_standard_color_palette()[d[i+ colorOffset]];
 		}else{
 			c.r = d[i+ colorOffset];
@@ -165,7 +152,6 @@ void ofxIldaFileFrame::decodeData(ofBuffer& buffer, size_t num_points){
 				c.a = 0;
 			}
 		}
-//		path.addColor(c);
 		addPoint(v, c, false);
 	}	
 }
@@ -185,21 +171,17 @@ void ofxIldaFileFrame::encodeData(ofBuffer& buffer){
 		glm::vec3 v = verts[i];
 		ofColor  c = colors[i];
 		
-		
-//		if(bNormalizedData){
-//			unnormalizePoint(v);
-//		}
-		
 		setShortIntoChars(d, v.x, 0);
 		setShortIntoChars(d, v.y, 2);
-		if(format == 0 || format == 4){
+		
+		if(ifFormat3D(format)){
 			setShortIntoChars(d, v.z, 4);
 		}
 			
 		if(c.a != 0){
 		int colorOffset = getColorOffset();
 		
-		if(format == 0 || format == 1){
+		if(ifFormatIndexedColor(format)){
 			int ind = findColorInPalette(c);
 			if(ind < 0) {
 				ind =0;
@@ -267,7 +249,7 @@ ofxIldaFileFrame ofxIldaFileFrame::getEndFrame(const ofxIldaFileFrame& refFrame)
 	return f;
 }
 //--------------------------------------------------------------
-const int& ofxIldaFileFrame::getFormat() const {
+const ofxIldaFileFormat& ofxIldaFileFrame::getFormat() const {
 	return format; 
 }
 //--------------------------------------------------------------
@@ -306,19 +288,20 @@ size_t ofxIldaFileFrame::getDataSize(){
 //--------------------------------------------------------------
 int ofxIldaFileFrame::getNumDataBytesForFormat(){
 	switch(format){
-		case 0: return 8;
-		case 1: return 6;
-		case 2: return 3;
-		case 4: return 10;
-		case 5: return 8;
+		case OFX_ILDAFILE_FORMAT_3D_INDEXED_COLOR: return 8;
+		case OFX_ILDAFILE_FORMAT_2D_INDEXED_COLOR: return 6;
+		case OFX_ILDAFILE_FORMAT_COLOR_PALETTE: return 3;
+		case OFX_ILDAFILE_FORMAT_3D_TRUE_COLOR: return 10;
+		case OFX_ILDAFILE_FORMAT_2D_TRUE_COLOR: return 8;
+		case OFX_ILDAFILE_FORMAT_INVALID: return 0;
 	}
 	return 0;
 }
 //--------------------------------------------------------------
 int ofxIldaFileFrame::getStatusCodeOffset(){
-	if(format == 0 || format == 4){
+	if(ifFormat3D(format)){
 		return 6;
-	}else if(format == 1 || format == 5){
+	}else if(ifFormat2D(format)){
 		return 4;
 	}
 	return -1;
@@ -326,9 +309,9 @@ int ofxIldaFileFrame::getStatusCodeOffset(){
 
 //--------------------------------------------------------------
 int ofxIldaFileFrame::getColorOffset(){
-	if(format == 0 || format == 4){
+	if(ifFormat3D(format)){
 		return 7;
-	}else if(format == 1 || format == 5){
+	}else if(ifFormat2D(format)){
 		return 5;
 	}
 	return -1;
@@ -359,4 +342,10 @@ void ofxIldaFileFrame::unnormalizePoint(glm::vec3& point){
 	point.y = ofMap(point.y, -1, 1, -32768, 32767);
 	point.z = ofMap(point.z, -1, 1, -32768, 32767);
 
+}
+//--------------------------------------------------------------
+bool ofxIldaFileFrame::validateFormat(const int& format){
+	if (format == 3) return false;
+	if (format >= 0 && format <= 5)return true;
+	return false;
 }

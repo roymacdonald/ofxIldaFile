@@ -10,14 +10,15 @@
 #include "ofMain.h"
 #include "ofxIldaFileUtils.h"
 #include "ofxIldaFileColorPalette.h"
+#include "ofxIldaFileConstants.h"
 
 class ofxIldaFileFrame{
 public:
 	friend class ofxIldaFile;
 	ofxIldaFileFrame(){}
-	ofxIldaFileFrame(const int& format, const string& frameName, const string& companyName);
+	ofxIldaFileFrame(const ofxIldaFileFormat& format, const string& frameName, const string& companyName);
 	
-	void setup(const int& format, const string& frameName, const string& companyName);
+	void setup(const ofxIldaFileFormat& format, const string& frameName, const string& companyName);
 	
 	void addPoint(glm::vec3 point, const ofColor& color, bool bIsNormalized );
 	
@@ -25,7 +26,7 @@ public:
 	
 	void writeToBuffer(ofBuffer& buffer);
 	
-	const int& getFormat() const;
+	const ofxIldaFileFormat& getFormat() const;
 	const string& getFrameName() const;
 	const string& getCompanyName() const;
 		  size_t  getNumPoints()  const;
@@ -57,6 +58,9 @@ public:
 	
 	void resetPaths();
 	
+	
+	static bool validateFormat(const int& format);
+	
 protected:
 
 	
@@ -75,7 +79,7 @@ protected:
 	int getColorOffset();
 	int getStatusCodeOffset();
 	
-	int format;
+	ofxIldaFileFormat format;
 	string frame_name;
 	string company_name;
 //	size_t point_number;
