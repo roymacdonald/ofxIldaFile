@@ -68,7 +68,7 @@ void ofxIldaFileDirectory::saveDir(string dirPath){
 			
 				ildaFiles[i]->save(validPath);
 			
-				string prg = ofFilePath::getFileName(validPath)+ ", " + ofToString(ildaFiles[i]->getScanRate())+ ", " + ofToString(ildaFiles[i]->getFrameDuration()) + "\n";
+				string prg = ofFilePath::getFileName(validPath)+ "," + ofToString(ildaFiles[i]->getScanRate())+ "," + ofToString(ildaFiles[i]->getFrameDuration(), 1) + "\n";
 				
 				prgBuffer.append(prg);
 				cout << prg;
