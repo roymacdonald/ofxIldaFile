@@ -8,6 +8,9 @@ docs/tagfile.xml
 */bin/*
 !*/bin/data/
 
+*.ild
+*.prg
+
 # for bin folder in root
 /bin/*
 !/bin/data/
