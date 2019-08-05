@@ -11,6 +11,7 @@
 #include "ofxIldaFileUtils.h"
 #include "ofxIldaFileColorPalette.h"
 #include "ofxIldaFileConstants.h"
+#define OFX_ILDA_FILE_FRAME_DEBUG
 
 class ofxIldaFileFrame{
 public:
@@ -58,8 +59,12 @@ public:
 	
 	void resetPaths();
 	
-	
 	static bool validateFormat(const int& format);
+
+#ifdef OFX_ILDA_FILE_FRAME_DEBUG
+	std::map<size_t, size_t > endsMap;
+	std::map<size_t, size_t > repVMap;
+#endif
 	
 protected:
 
