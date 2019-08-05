@@ -1,6 +1,7 @@
 #include "ofxIldaFile.h"
 #include "ofxSvg.h"
 
+
 //--------------------------------------------------------------
 ofxIldaFile::ofxIldaFile(){
 	cam.removeAllInteractions();
@@ -11,6 +12,8 @@ ofxIldaFile::ofxIldaFile(){
 	cam.setNearClip(-1000000);
 	cam.setFarClip(1000000);
 	cam.setVFlip(false);
+	
+	ildaFrame.setup();
 }
 ofxIldaFile::ofxIldaFile(const string& name, float frame_duration, int scan_rate):ofxIldaFile(){
 	setup(name, frame_duration, scan_rate);
@@ -131,15 +134,83 @@ void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 			ofPopStyle();
 		}
 		
-		frames[currentFrame]->normalizedPath.draw(); // path.draw();
+		frames[currentFrame]->normalizedPath.draw();
+		
+		
+
+		
+//		ofSetColor(0);
+//		for(size_t i = 1; i < svgPaths.size(); i++){
+//			ofDrawLine(svgPaths[i].getOutline().front().getVertices().front(),
+//					   svgPaths[i-1].getOutline().back().getVertices().back());
+//		}
+
+		
+		
+		
+		
+		
+		auto& v = frames[currentFrame]->normalizedPath.getVertices();
+		auto& c = frames[currentFrame]->normalizedPath.getColors();
+		
+		auto dc = cam.screenToWorld({1,1,0}) - cam.screenToWorld({0,0,0});
+		float d = dc.x/(min(viewport.width, viewport.height)*0.5f);
+		ofPushStyle();
+		for(size_t i = 0; i < v.size();i++){
+			if(ofIsFloatEqual(c[i].a, 0.0f)){
+				ofSetColor(0);
+				ofNoFill();
+			}else{
+				ofSetColor(c[i]);
+				ofFill();
+			}
+			
+			ofDrawCircle(v[i], d*2);
+		}
+		ofPopStyle();
+//		ofSetColor(255);
+//		for(auto& e:frames[currentFrame]->endsMap){
+//			ofDrawBitmapString(ofToString(e.second),v[e.first] );
+//		}
+//		ofSetColor(0);
+//		for(auto& r:frames[currentFrame]->repVMap){
+//			
+//			ofSetColor(c[r.first]);
+//			ofDrawCircle(v[r.first], d*12);
+//			ofSetColor(0);
+//			ofDrawBitmapString(ofToString(r.second),v[r.first] );
+//		}
+		
+		
+		
+//		frames[currentFrame]->path.draw();
+		
+		
+//		auto& v = frames[currentFrame]->normalizedPath.getVertices();
+//		auto& c = frames[currentFrame]->normalizedPath.getColors();
+		
+//		size_t accum = 0;
+//		glm::vec3 lastV;
+//		for(size_t i =0; i < v.size(); i++){
+//			if(ofIsFloatEqual(c[i].a, 0.0f)){
+//				accum++;
+//				lastV = v[i];
+//			}else{
+//				accum =0;
+//				ofDrawBitmapStringHighlight(ofToString(accum), lastV);
+//			}
+//		
+		//		}
 		
 		ofPopMatrix();
 		cam.end();
-		if( ofGetElapsedTimef() - lastFrameTime > frameduration){
-			if(lastFrameTime != 0){
-				(++ currentFrame) %= frames.size();
+		if(!bPaused){
+			if( ofGetElapsedTimef() - lastFrameTime > frameduration){
+				if(lastFrameTime != 0){
+					(++ currentFrame) %= frames.size();
+				}
+				lastFrameTime = ofGetElapsedTimef();
 			}
-			lastFrameTime = ofGetElapsedTimef();
 		}
 	}
 }
@@ -190,7 +261,7 @@ string ofxIldaFile::getValidPath(const string& filepath){
 	for(size_t i =0; ofFile::doesFileExist(fullpath) && i < 1000000; i++ ){
 		int numDigits = 1;//(int)(floor(log10(i)) +1);
 		if(i > 0) numDigits += (int)(floor(log10(i)));
-		cout << "numDigits: " << numDigits << "  " << i <<endl;
+//		cout << "numDigits: " << numDigits << "  " << i <<endl;
 		n = n.substr(0, 8 - numDigits) + ofToString(i);
 		fullpath = dir+ n + ".ild";
 	}
@@ -218,17 +289,61 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::addFrame(shared_ptr<ofxIldaFileFrame> 
 	return frames.back();
 }
 //--------------------------------------------------------------
-glm::vec3 growToFill(const glm::vec3& p, const glm::vec3 & mn,const glm::vec3 & mx, bool bDoYFlip ){
+shared_ptr<ofxIldaFileFrame> ofxIldaFile::getCurrentFrame(){
+	if(currentFrame < frames.size()){
+		return frames[currentFrame];
+	}
+	return nullptr;
+}
+//--------------------------------------------------------------
+size_t ofxIldaFile::getCurrentFrameIndex(){
+	return currentFrame;
+}
+//--------------------------------------------------------------
+glm::vec3 growToFill(const glm::vec3& p, const glm::vec3 & from_min,const glm::vec3 & from_max,const glm::vec3 & to_min,const glm::vec3 & to_max, bool bDoYFlip ){
 	glm::vec3 v;
-	v.x = ofMap(p.x, mn.x, mx.x,  -32768, 32767);
+	v.x = ofMap(p.x, from_min.x, from_max.x, to_min.x, to_max.x);
 	v.y = p.y;
 	if(bDoYFlip){
-		v.y = mx.y - (v.y - mn.y);
+		v.y = from_max.y - (v.y - from_min.y);
 	}
-	v.y = ofMap(v.y, mn.y, mx.y,  -32768, 32767);
-	
+	v.y = ofMap(v.y, from_min.y, from_max.y, to_min.y, to_max.y);
 	v.z =0;
 	return v;
+}
+//--------------------------------------------------------------
+void ofxIldaFile::setPaused(bool paused){
+	bPaused = paused;
+}
+//--------------------------------------------------------------
+bool ofxIldaFile::isPaused(){
+	return bPaused;
+}
+//--------------------------------------------------------------
+void ofxIldaFile::updateFromIldaFrame(){
+	cout << "ofxIldaFile::updateFromIldaFrame" << endl;
+	if(frames.size()){
+		ildaFrame.update();
+		
+		//check if the polyline optimization removed relevant vertices of the ofPath, so to be able to have sharp corners
+//		moveTo,
+//		lineTo,
+//		curveTo,
+//		bezierTo,
+//		quadBezierTo,
+//		arc,
+//		arcNegative,
+//		close
+	
+		
+		
+		auto& points = ildaFrame.getPoints();
+		frames.back()->resetPaths();
+		for(auto & p : points){
+			frames.back()->addPoint({p.x, p.y, 0}, ofColor(p.r, p.g, p.b, p.a), false);
+		}
+
+	}
 }
 //--------------------------------------------------------------
 shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath, ofxIldaFileFormat format, bool bScaleToFill, const string& framename, const string& companyname ){
@@ -238,48 +353,189 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath
 	}
 	ofxSVG svg;
 	svg.load(filepath);
-	auto& paths = svg.getPaths();
-	if(paths.size() == 0){
+	svgPaths = svg.getPaths();
+	if(svgPaths.size() == 0){
 		ofLogWarning("ofxIldaFile::newFrameFromSVG") << "loaded svg file has no paths";
 		return nullptr;
 	}
 //	auto file = ildaDir.addNewFile("SWISS", 2, 20);
 	auto frame =  addFrame({format, framename, companyname});
 	
-	ofRectangle bb;
-	if(bScaleToFill){
-		bool bFirst = true;
+#ifdef USE_OFX_ILDA
+	
+
+	ofRectangle bb = getBoundingBox(svgPaths);
+
+	bb.scaleFromCenter(1.25);
+	auto from_min = bb.getMin();
+	auto from_max = bb.getMax();
 		
-		for(size_t ind = 0; ind < paths.size(); ind++){
-			auto& c = paths[ind].getCommands();
+	
+	
+	glm::vec3 to_min = { 0, 0,0};
+	glm::vec3 to_max = { 1, 1,0};
+	
+	ildaFrame.clear();
+//	svgPathsToPolyIndices.clear();
+	
+//	for(auto& p: svgPaths){
+//	svgPathsStart.clear();
+//	svgPathsEnd.clear();
+	
+	for(size_t i = 0; i < svgPaths.size();i++){
+		auto ol = svgPaths[i].getOutline();
+		
+		for(auto& o: ol){
+//			cout << "closed poly: " << boolalpha << o.isClosed() << endl;
 			
-			for(size_t i = 0; i < c.size()-1; i++){
-				if(bFirst && c[i].type != ofPath::Command::close ){
-					bb.set(c[i].to, 0,0);
-					bFirst = false;
+			auto& v = o.getVertices();
+			for(size_t j = 0; j < v.size(); j++){
+				v[j] = growToFill(v[j], from_min, from_max, to_min, to_max, true);
+				if(j == 0){
+//					svgPathsStart.push_back(v[j]);
+					
+				}
+				if(j == v.size() - 1) {
+//					svgPathsEnd.push_back(v[j]);
+					
+				}
+			}
+			
+ 			ildaFrame.addPoly(o, svgPaths[i].getStrokeColor());
+//			svgPathsToPolyIndices.push_back(i);
+//			cout << "strokeColor: " << p.getStrokeColor() << "  fill color: " << p.getFillColor() <<endl;
+		}
+ 	}
+	
+	
+	
+	ildaFrameParamListener = ildaFrame.params.parameterChangedE().newListener([&](ofAbstractParameter&){
+		updateFromIldaFrame();
+	});
+	
+	updateFromIldaFrame();
+	
+	cout << "frame-> path:           " << getBoundingBox(frame->path) << endl;
+	cout << "frame-> normalized path:" << getBoundingBox(frame->normalizedPath) << endl;
+	//cout << "bb2 " << bb2 << endl;
+	
+//		frame->normalizedPath.clear();
+//		frame->normalizedPath = frame->path;
+//		for(auto& v: frame->normalizedPath.getVertices()){
+//			ofxIldaFileFrame::normalizePoint(v);
+//		}
+	
+		cout << "frame from min " << from_min << endl;
+		cout << "frame from max " << from_max << endl;
+		cout << "frame to min " << to_min << endl;
+		cout << "frame to max " << to_max << endl;
+//	}
+	
+	
+#else
+//	if(bScaleToFill){
+//		bool bFirst = true;
+//		
+//		for(size_t ind = 0; ind < paths.size(); ind++){
+//			auto& c = paths[ind].getCommands();
+//			
+//			for(size_t i = 0; i < c.size()-1; i++){
+//				if(bFirst && c[i].type != ofPath::Command::close ){
+//					bb.set(c[i].to, 0,0);
+//					bFirst = false;
+//				}else{
+//					bb.growToInclude(c[i].to);
+//				}
+//			}
+//		}
+//	}
+//	auto mn = bb.getMin();
+//	auto mx = bb.getMax();
+	//		cout << "svg min" << mn << endl;
+	//		cout << "svg max" << mx << endl;
+	int startCount = 5;
+	int endCount = 5;
+	
+	cout << "paths.size " << paths.size() << endl;
+	for(size_t ind = 0; ind < paths.size(); ind++){
+
+		auto& o = paths[ind].getOutline();
+		for(auto& c: o){
+			if(c.size() > 0){
+				frame->addPoint(c[0], {0,0,0,0}, false);
+//			}
+				for(int i =0; i < startCount ; i++){
+					frame->addPoint(c[0], ofColor::white, false);
+				}
+				for(int i =0; i < c.size() ; i++){
+					frame->addPoint(c[i], ofColor::white, false);
+				}
+//			if(c.size() > 0){
+				if(c.isClosed()){
+					for(int i =0; i < endCount ; i++){
+						frame->addPoint(c[0], ofColor::white, false);
+					}
+					frame->addPoint(c[0], ofColor::white, false);
+					frame->addPoint(c[0], {0,0,0,0}, false);
 				}else{
-					bb.growToInclude(c[i].to);
+					for(int i =0; i < endCount ; i++){
+						frame->addPoint(c[c.size() - 1], ofColor::white, false);
+					}
+					frame->addPoint(c[c.size() - 1], {0,0,0,0}, false);
 				}
 			}
 		}
+//		auto& c = paths[ind].getCommands();
+//		cout << "path " << ind << " commands: " << c.size() << endl;
+//		bool bWasClose = false;
+//		if(c.size() > 0){
+//			frame->addPoint(c[0].to, {0,0,0,0}, false);
+//		}
+//		for(int i =0; i < c.size() -1; i++){
+//			frame->addPoint(c[i].to, ofColor::white, false);
+//		}
+//		if(c.size() > 2){
+//			frame->addPoint(c[c.size() - 2].to, {0,0,0,0}, false);
+//		}
 	}
-	auto mn = bb.getMin();
-	auto mx = bb.getMax();
-	//		cout << "svg min" << mn << endl;
-	//		cout << "svg max" << mx << endl;
+	if(bScaleToFill && frame->path.getNumVertices()){
+		ofRectangle bb;
+		bb.set(frame->path.getVertices()[0], 0,0);
+		for(auto& v: frame->path.getVertices()){
+			bb.growToInclude(v);
+		}
+		
+		
+		ofRectangle ildaArea;
+		ildaArea.set(-32768, -32768, 65535, 65535);
+		ofRectangle scaledRect = bb;
+		scaledRect.scaleTo(ildaArea);
+		scaledRect.scaleFromCenter(0.8);
+		auto from_min = bb.getMin();
+		auto from_max = bb.getMax();
+		
+		auto to_min = scaledRect.getMin();
+		auto to_max = scaledRect.getMax();
+		
+		for(auto& v: frame->path.getVertices()){
+			v = growToFill(v, from_min, from_max, to_min, to_max, true);
+		}
+		
+		frame->normalizedPath.clear();
+		frame->normalizedPath = frame->path;
+		for(auto& v: frame->normalizedPath.getVertices()){
+			ofxIldaFileFrame::normalizePoint(v);
+		}
+		
+		cout << "frame from min " << from_min << endl;
+		cout << "frame from max " << from_max << endl;
+		cout << "frame to min " << to_min << endl;
+		cout << "frame to max " << to_max << endl;
+	}
 	
-	for(size_t ind = 0; ind < paths.size(); ind++){
-		auto& c = paths[ind].getCommands();
-		bool bWasClose = false;
-		if(c.size() > 0){
-			frame->addPoint(bScaleToFill?growToFill(c[0].to, mn, mx, true):c[0].to, {0,0,0,0}, false);
-		}
-		for(int i =0; i < c.size() -1; i++){
-			frame->addPoint(bScaleToFill?growToFill(c[i].to, mn, mx, true):c[i].to, ofColor::white, false);
-		}
-		if(c.size() > 1){
-			frame->addPoint(bScaleToFill?growToFill(c[c.size() - 2].to, mn, mx, true):c[c.size() - 2].to, {0,0,0,0}, false);
-		}
-	}
+	
+	
+
+#endif
 	return frame;
 }
