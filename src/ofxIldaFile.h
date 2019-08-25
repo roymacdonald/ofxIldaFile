@@ -4,12 +4,12 @@
 #ifdef USE_OFX_ILDA
 #include "ofxIldaFrame.h"
 #endif
-
-class ofxIldaFile {
+namespace ofxIlda{
+class File {
 public:
-	ofxIldaFile();
+	File();
 	
-	ofxIldaFile(const string& name, float frame_duration, int scan_rate);
+	File(const string& name, float frame_duration, int scan_rate);
 	
 	
 	/// \brief
@@ -25,7 +25,8 @@ public:
 	
 	bool loadDialog();
 	
-	void save(string filepath);
+	/// as the file path needs to be validated it will return the validated and formated filepath; the actual file path where the file got saved.
+	string save(string filepath);
 	
 	void saveDialog();
 	
@@ -36,18 +37,18 @@ public:
 	/// \brief Creates a new frame from an SVG file.
 	///
 	/// \param filepath  the path to the svg file
-	/// \param format  the ilda file format. It can be any of ofxIldaFileFormat.
+	/// \param format  the ilda file format. It can be any of ofxIlda::FileFormat.
 	/// \param bScaleToFill if true it will scale all the points so these use the whole available area. set to false if you're loadding an animation
 	/// \param framename each ILDA frame has a name, you can add it or not.
 	/// \param companyname each ILDA frame has a "company name" too which you can add it or not.
 	
 	/// \returns a shared pointer of the newly created frame if everything went ok, otherwise returns a nullptr.
-	shared_ptr<ofxIldaFileFrame> newFrameFromSVG(const string& filepath, ofxIldaFileFormat format, bool bScaleToFill, const string& framename = "", const string& companyname = "");
+	shared_ptr<ofxIlda::FileFrame> newFrameFromSVG(const string& filepath, ofxIlda::FileFormat format, bool bScaleToFill, const string& framename = "", const string& companyname = "");
 	
 	
 	void reset();
-	vector<shared_ptr<ofxIldaFileFrame>>& getFrames();
-	const vector<shared_ptr<ofxIldaFileFrame>>& getFrames() const;
+	vector<shared_ptr<ofxIlda::FileFrame>>& getFrames();
+	const vector<shared_ptr<ofxIlda::FileFrame>>& getFrames() const;
 	const string& getFilepath();
 	
 	bool isLoaded();
@@ -57,18 +58,21 @@ public:
 	float getFrameDuration();
 	int getScanRate();
 	
+	void setFrameDuration(float frameDuration);
+	void setScanRate(int scanRate);
+	
+	
 	
 	static string getValidPath(const string& filepath);
 	static string getValidName(const string& _name);
 	
-	shared_ptr<ofxIldaFileFrame> addFrame();
-	shared_ptr<ofxIldaFileFrame> addFrame(shared_ptr<ofxIldaFileFrame> f);
-	shared_ptr<ofxIldaFileFrame> addFrame(const ofxIldaFileFrame& f);
+	shared_ptr<ofxIlda::FileFrame> addFrame();
+	shared_ptr<ofxIlda::FileFrame> addFrame(shared_ptr<ofxIlda::FileFrame> f);
+	shared_ptr<ofxIlda::FileFrame> addFrame(const ofxIlda::FileFrame& f);
 	
-	shared_ptr<ofxIldaFileFrame> getCurrentFrame();
+	shared_ptr<ofxIlda::FileFrame> getCurrentFrame();
 	size_t getCurrentFrameIndex();
 
-	ofxIlda::Frame ildaFrame;
 	
 	
 	
@@ -76,8 +80,19 @@ public:
 	vector<ofPath> svgPaths;
 //	vector<glm::vec3> svgPathsStart, svgPathsStartProcessed;
 //	vector<glm::vec3> svgPathsEnd, svgPathsEndProcessed;
-protected:
 	
+	
+	shared_ptr<FrameSettings> getFrameSettings();
+	shared_ptr<ofxIlda::Frame> getIldaFrame();
+	
+	
+	vector <glm::vec3> splitPoints, transformedSplitPoints;
+	
+protected:
+
+	
+	shared_ptr<ofxIlda::Frame> ildaFrame = nullptr;
+	shared_ptr<FrameSettings> frameSettings = nullptr;
 //	vector<size_t> svgPathsToPolyIndices;
 	ofEventListener ildaFrameParamListener;
 	void updateFromIldaFrame();
@@ -89,7 +104,7 @@ protected:
 	
 	size_t currentFrame = 0;
 	
-	vector<shared_ptr<ofxIldaFileFrame> > frames;
+	vector<shared_ptr<ofxIlda::FileFrame> > frames;
 	
 	string filepath ="";
 	ofEasyCam cam;
@@ -101,3 +116,4 @@ protected:
 //	void createRenderer();
 };
 
+}

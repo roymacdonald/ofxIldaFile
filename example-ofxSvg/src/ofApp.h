@@ -1,8 +1,9 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxIldaFileDirectory.h"
-#include "ofxSvg.h"
+#include "ofxIldaFile.h"
+//#include "ofxSvg.h"
+#include "ofxGui.h"
 class ofApp : public ofBaseApp{
 
 	public:
@@ -22,16 +23,21 @@ class ofApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 	
-		ofxIldaFileDirectory ildaDir;
-			ofxSVG svg;
-	void loadSvg();
+//	ofxIldaFileDirectory ildaDir;
+	ofxIlda::File file;
+//	ofxSVG svg;
+//	void loadSvg();
 	
 	
-	size_t index = 0, vertIndex = 0, polyIndex = 0;
+//	size_t index = 0, vertIndex = 0, polyIndex = 0;
 	
-	std::vector <ofPath> paths;
+//	std::vector <ofPath> paths;
 
-	vector<ofPolyline> polys;
-	vector<glm::vec3> closePoints, openPoints;
-	ofEasyCam cam;
+//	vector<ofPolyline> polys;
+//	vector<glm::vec3> closePoints, openPoints;
+//	ofEasyCam cam;
+	
+	
+	ofxPanel gui;
+	
 };

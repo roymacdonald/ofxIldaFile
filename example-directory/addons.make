@@ -1,1 +1,3 @@
+ofxIlda
 ofxIldaFile
+ofxSvg

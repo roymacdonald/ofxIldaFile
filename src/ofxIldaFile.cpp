@@ -3,7 +3,7 @@
 
 
 //--------------------------------------------------------------
-ofxIldaFile::ofxIldaFile(){
+ofxIlda::File::File(){
 	cam.removeAllInteractions();
 	cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY, OF_MOUSE_BUTTON_LEFT);
 	cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_Z, OF_MOUSE_BUTTON_RIGHT);
@@ -13,19 +13,19 @@ ofxIldaFile::ofxIldaFile(){
 	cam.setFarClip(1000000);
 	cam.setVFlip(false);
 	
-	ildaFrame.setup();
+//	ildaFrame.setup();
 }
-ofxIldaFile::ofxIldaFile(const string& name, float frame_duration, int scan_rate):ofxIldaFile(){
+ofxIlda::File::File(const string& name, float frame_duration, int scan_rate):ofxIlda::File(){
 	setup(name, frame_duration, scan_rate);
 }
 //--------------------------------------------------------------
-void ofxIldaFile::setup(const string& name, float frame_duration, int scan_rate){
+void ofxIlda::File::setup(const string& name, float frame_duration, int scan_rate){
 	this->name = name;
 	frameduration = frame_duration;
 	scanrate = scan_rate;
 }
 //--------------------------------------------------------------
-bool ofxIldaFile::loadDialog(){
+bool ofxIlda::File::loadDialog(){
 	auto r = ofSystemLoadDialog("Select an .ild file");
 	if(r.bSuccess){
 		return load(r.getPath());
@@ -33,9 +33,9 @@ bool ofxIldaFile::loadDialog(){
 	return false;
 }
 //--------------------------------------------------------------
-bool ofxIldaFile::load(const string& filepath){
+bool ofxIlda::File::load(const string& filepath){
 	if( ofToLower(ofFilePath::getFileExt(filepath)) != "ild"){
-		ofLogError("ofxIldaFile::load") << "Not a .ild file. Not loading";
+		ofLogError("ofxIlda::File::load") << "Not a .ild file. Not loading";
 		return false;
 	}
 	ofBuffer buffer = ofBufferFromFile(filepath);
@@ -48,7 +48,7 @@ bool ofxIldaFile::load(const string& filepath){
 	name = ofFilePath::getBaseName(filepath);
 	
 	for (size_t i=0 ; i< buffer.size() ; ){
-		shared_ptr<ofxIldaFileFrame> frame = make_shared<ofxIldaFileFrame>();
+		shared_ptr<ofxIlda::FileFrame> frame = make_shared<ofxIlda::FileFrame>();
 		if(frame->readFromBuffer(buffer, i)){
 			frames.push_back(frame);
 			i+=32 + frame->getDataSize();
@@ -71,19 +71,18 @@ bool ofxIldaFile::load(const string& filepath){
 	return frames.size() > 0;
 }
 //--------------------------------------------------------------
-bool ofxIldaFile::isLoaded(){
+bool ofxIlda::File::isLoaded(){
 	return frames.size() > 0;
 }
+
 //--------------------------------------------------------------
-void ofxIldaFile::save(string filepath){
+string ofxIlda::File::save(string filepath){
 	ofBuffer buffer;
 
 	for (size_t i=0 ; i< frames.size() ; i++){
 		frames[i]->frame_number=i;
 		frames[i]->total_frame = frames.size();
 		frames[i]->writeToBuffer(buffer);
-		
-
 	}
 //	for(auto&f: frames){
 //		cout << "----------"<<endl;
@@ -96,29 +95,32 @@ void ofxIldaFile::save(string filepath){
 //		if( ofToLower(ofFilePath::getFileExt(filepath)) != "ild"){
 //			filepath = ofFilePath::getPathForDirectory(ofFilePath::getEnclosingDirectory(filepath));
 //			filepath += ofFilePath::getBaseName(filepath) + ".ild";
-//			ofLogWarning("ofxIldaFile::save") << "file extension must be .ild! Automatically changed into it";
+//			ofLogWarning("ofxIlda::File::save") << "file extension must be .ild! Automatically changed into it";
 //		}
 		
-		ofxIldaFileFrame::getEndFrame(*frames.back()).writeToBuffer(buffer);
+		ofxIlda::FileFrame::getEndFrame(*frames.back()).writeToBuffer(buffer);
 		
 		ofFilePath::createEnclosingDirectory(filepath);
 		
 		ofBufferToFile(filepath, buffer);
+		return filepath;
 	}else{
-		ofLogWarning("ofxIldaFile::save") << "No data of file. Not writting";
+		ofLogWarning("ofxIlda::File::save") << "No data of file. Not writting";
 	}
+	return "";
 }
 //--------------------------------------------------------------
-void ofxIldaFile::saveDialog(){
+void ofxIlda::File::saveDialog(){
 	auto r = ofSystemSaveDialog(name + ".ild", "Save to .ild file");
 	if(r.bSuccess){
 		save(r.getPath());
 	}else{
-		ofLogWarning("ofxIldaFile::saveDialog") << "save dialog canceled!";
+		ofLogWarning("ofxIlda::File::saveDialog") << "save dialog canceled!";
 	}
 }
+
 //--------------------------------------------------------------
-void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
+void ofxIlda::File::draw(const ofRectangle & viewport, bool bDrawBounds){
 	if(currentFrame < frames.size()){
 		cam.begin();
 		ofPushMatrix();
@@ -168,6 +170,16 @@ void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 			ofDrawCircle(v[i], d*2);
 		}
 		ofPopStyle();
+		
+		ofPushStyle();
+		ofSetColor(ofColor::red);
+		ofFill();
+		for(auto & p: transformedSplitPoints){
+			ofDrawCircle(p, d*3);
+		}
+		ofPopStyle();
+		
+		
 //		ofSetColor(255);
 //		for(auto& e:frames[currentFrame]->endsMap){
 //			ofDrawBitmapString(ofToString(e.second),v[e.first] );
@@ -215,7 +227,7 @@ void ofxIldaFile::draw(const ofRectangle & viewport, bool bDrawBounds){
 	}
 }
 //--------------------------------------------------------------
-void ofxIldaFile::reset(){
+void ofxIlda::File::reset(){
 	name = "";
 	frameduration = 0;
 	scanrate = 0;
@@ -229,31 +241,39 @@ void ofxIldaFile::reset(){
 	
 }
 //--------------------------------------------------------------
-const string& ofxIldaFile::getFilepath(){
+const string& ofxIlda::File::getFilepath(){
 	return filepath;
 }
 //--------------------------------------------------------------
-vector<shared_ptr<ofxIldaFileFrame>>& ofxIldaFile::getFrames(){
+vector<shared_ptr<ofxIlda::FileFrame>>& ofxIlda::File::getFrames(){
 	return frames;
 }
 //--------------------------------------------------------------
-const vector<shared_ptr<ofxIldaFileFrame>>& ofxIldaFile::getFrames() const {
+const vector<shared_ptr<ofxIlda::FileFrame>>& ofxIlda::File::getFrames() const {
 	return frames;
 }
 //--------------------------------------------------------------
-const string& ofxIldaFile::getName(){
+const string& ofxIlda::File::getName(){
 	return name;
 }
 //--------------------------------------------------------------
-float ofxIldaFile::getFrameDuration(){
+float ofxIlda::File::getFrameDuration(){
 	return frameduration;
 }
 //--------------------------------------------------------------
-int ofxIldaFile::getScanRate(){
+int ofxIlda::File::getScanRate(){
 	return scanrate;
 }
 //--------------------------------------------------------------
-string ofxIldaFile::getValidPath(const string& filepath){
+void ofxIlda::File::setFrameDuration(float frameDuration){
+	frameduration = frameDuration;
+}
+//--------------------------------------------------------------
+void ofxIlda::File::setScanRate(int scanRate){
+	scanrate = scanRate;
+}
+//--------------------------------------------------------------
+string ofxIlda::File::getValidPath(const string& filepath){
 	string dir =  ofFilePath::getPathForDirectory(ofFilePath::getEnclosingDirectory(filepath));
 	string n = getValidName(ofFilePath::getBaseName(filepath));
 	string fullpath = dir+ n + ".ild";
@@ -268,35 +288,35 @@ string ofxIldaFile::getValidPath(const string& filepath){
 	return fullpath;
 }
 //--------------------------------------------------------------
-string ofxIldaFile::getValidName(const string& _name){
+string ofxIlda::File::getValidName(const string& _name){
 	if(_name.size() >= 8)return _name;
 	return _name.substr(0, 8);
 }
 
 //--------------------------------------------------------------
-shared_ptr<ofxIldaFileFrame> ofxIldaFile::addFrame(){
-	frames.push_back(make_shared<ofxIldaFileFrame>());
+shared_ptr<ofxIlda::FileFrame> ofxIlda::File::addFrame(){
+	frames.push_back(make_shared<ofxIlda::FileFrame>());
 	return frames.back();
 }
 //--------------------------------------------------------------
-shared_ptr<ofxIldaFileFrame> ofxIldaFile::addFrame(const ofxIldaFileFrame& f){
-	frames.push_back(make_shared<ofxIldaFileFrame>(f));
+shared_ptr<ofxIlda::FileFrame> ofxIlda::File::addFrame(const ofxIlda::FileFrame& f){
+	frames.push_back(make_shared<ofxIlda::FileFrame>(f));
 	return frames.back();
 }
 //--------------------------------------------------------------
-shared_ptr<ofxIldaFileFrame> ofxIldaFile::addFrame(shared_ptr<ofxIldaFileFrame> f){
+shared_ptr<ofxIlda::FileFrame> ofxIlda::File::addFrame(shared_ptr<ofxIlda::FileFrame> f){
 	frames.push_back(f);
 	return frames.back();
 }
 //--------------------------------------------------------------
-shared_ptr<ofxIldaFileFrame> ofxIldaFile::getCurrentFrame(){
+shared_ptr<ofxIlda::FileFrame> ofxIlda::File::getCurrentFrame(){
 	if(currentFrame < frames.size()){
 		return frames[currentFrame];
 	}
 	return nullptr;
 }
 //--------------------------------------------------------------
-size_t ofxIldaFile::getCurrentFrameIndex(){
+size_t ofxIlda::File::getCurrentFrameIndex(){
 	return currentFrame;
 }
 //--------------------------------------------------------------
@@ -312,50 +332,61 @@ glm::vec3 growToFill(const glm::vec3& p, const glm::vec3 & from_min,const glm::v
 	return v;
 }
 //--------------------------------------------------------------
-void ofxIldaFile::setPaused(bool paused){
+void ofxIlda::File::setPaused(bool paused){
 	bPaused = paused;
 }
 //--------------------------------------------------------------
-bool ofxIldaFile::isPaused(){
+bool ofxIlda::File::isPaused(){
 	return bPaused;
 }
 //--------------------------------------------------------------
-void ofxIldaFile::updateFromIldaFrame(){
-	cout << "ofxIldaFile::updateFromIldaFrame" << endl;
+void ofxIlda::File::updateFromIldaFrame(){
+//	cout << "ofxIlda::File::updateFromIldaFrame" << endl;
 	if(frames.size()){
-		ildaFrame.update();
+		ildaFrame->update();
 		
 		//check if the polyline optimization removed relevant vertices of the ofPath, so to be able to have sharp corners
-//		moveTo,
-//		lineTo,
-//		curveTo,
-//		bezierTo,
-//		quadBezierTo,
-//		arc,
-//		arcNegative,
-//		close
-	
 		
 		
-		auto& points = ildaFrame.getPoints();
+		auto& points = ildaFrame->getPoints();
 		frames.back()->resetPaths();
 		for(auto & p : points){
 			frames.back()->addPoint({p.x, p.y, 0}, ofColor(p.r, p.g, p.b, p.a), false);
 		}
-
+		
+		transformedSplitPoints = splitPoints;
+		for(auto& p: transformedSplitPoints){
+//			ofxIlda::normalizePoint(p);
+			p = ildaFrame->transformPoint(p);
+		}
+		
 	}
+
 }
 //--------------------------------------------------------------
-shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath, ofxIldaFileFormat format, bool bScaleToFill, const string& framename, const string& companyname ){
+shared_ptr<ofxIlda::FrameSettings> ofxIlda::File::getFrameSettings(){
+	if(frameSettings == nullptr) frameSettings = make_shared<FrameSettings>();
+	return frameSettings;
+}
+//--------------------------------------------------------------
+shared_ptr<ofxIlda::Frame> ofxIlda::File::getIldaFrame(){
+	if(ildaFrame == nullptr){
+		ildaFrame = make_shared<ofxIlda::Frame>(getFrameSettings());
+		ildaFrame->setup();
+	}
+	return ildaFrame;
+}
+//--------------------------------------------------------------
+shared_ptr<ofxIlda::FileFrame> ofxIlda::File::newFrameFromSVG(const string& filepath, ofxIlda::FileFormat format, bool bScaleToFill, const string& framename, const string& companyname ){
 	if(ofToLower(ofFilePath::getFileExt(filepath)) != "svg"){
-		ofLogWarning("ofxIldaFile::newFrameFromSVG") << "could not load. Not an svg file.";
+		ofLogWarning("ofxIlda::File::newFrameFromSVG") << "could not load. Not an svg file.";
 		return nullptr;
 	}
 	ofxSVG svg;
 	svg.load(filepath);
 	svgPaths = svg.getPaths();
 	if(svgPaths.size() == 0){
-		ofLogWarning("ofxIldaFile::newFrameFromSVG") << "loaded svg file has no paths";
+		ofLogWarning("ofxIlda::File::newFrameFromSVG") << "loaded svg file has no paths";
 		return nullptr;
 	}
 //	auto file = ildaDir.addNewFile("SWISS", 2, 20);
@@ -375,13 +406,89 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath
 	glm::vec3 to_min = { 0, 0,0};
 	glm::vec3 to_max = { 1, 1,0};
 	
-	ildaFrame.clear();
+	
+	
+	getIldaFrame()->clear();
 //	svgPathsToPolyIndices.clear();
 	
 //	for(auto& p: svgPaths){
 //	svgPathsStart.clear();
 //	svgPathsEnd.clear();
+	//		moveTo,
+	//		lineTo,
+	//		curveTo,
+	//		bezierTo,
+	//		quadBezierTo,
+	//		arc,
+	//		arcNegative,
+	//		close
 	
+	
+	auto getVerticesFromPath = [&](ofPath& path, const ofFloatColor& color ){
+		if(path.getCommands().size()){
+			auto ol =path.getOutline();
+			for(auto& o: ol){
+				auto& v = o.getVertices();
+				for(size_t j = 0; j < v.size(); j++){
+					v[j] = growToFill(v[j], from_min, from_max, to_min, to_max, true);
+				}
+				ildaFrame->addPoly(o, color);//svgPaths[i].getStrokeColor());
+			}
+			path.clear();
+		}
+	};
+	
+	
+	
+//#define SPLIT_VERTS
+#ifdef SPLIT_VERTS
+	vector<ofPath> splitPaths;
+	
+	enum SegmentType{
+		SEGMENT_NONE,
+		SEGMENT_LINES,
+		SEGMENT_CURVE
+	};
+	
+	splitPoints.clear();
+	
+	for(size_t i = 0; i < svgPaths.size();i++){
+		auto& c = svgPaths[i].getCommands();
+		auto currentSegmentType = SEGMENT_NONE;
+		auto prevSegmentType = SEGMENT_NONE;
+		
+		for(size_t i = 0; i < c.size()-1; i++){
+			if(c[i].type == ofPath::Command::lineTo ||
+			   c[i].type == ofPath::Command::moveTo){
+
+				currentSegmentType = SEGMENT_LINES;
+				
+			}else if(c[i].type == ofPath::Command::close){
+				currentSegmentType = SEGMENT_NONE;
+			}else{
+				currentSegmentType = SEGMENT_CURVE;
+			}
+			
+			if(currentSegmentType != prevSegmentType){
+//				if(currentSegmentType != SEGMENT_NONE){
+					splitPaths.push_back(ofPath());
+					splitPaths.back().moveTo(c[i-1].to);
+					splitPoints.push_back(growToFill(c[i-1].to, from_min, from_max, to_min, to_max, true));
+//				}else{
+			
+//				}
+			}
+			
+			prevSegmentType = currentSegmentType;
+//			if(currentSegmentType != SEGMENT_NONE){
+				splitPaths.back().addCommand(c[i]);
+//			}
+			//				path.addCommand(c[i]);
+		}
+	}
+	svgPaths  = splitPaths;
+	
+#endif
 	for(size_t i = 0; i < svgPaths.size();i++){
 		auto ol = svgPaths[i].getOutline();
 		
@@ -391,25 +498,26 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath
 			auto& v = o.getVertices();
 			for(size_t j = 0; j < v.size(); j++){
 				v[j] = growToFill(v[j], from_min, from_max, to_min, to_max, true);
-				if(j == 0){
-//					svgPathsStart.push_back(v[j]);
-					
-				}
-				if(j == v.size() - 1) {
-//					svgPathsEnd.push_back(v[j]);
-					
-				}
+//				if(j == 0){
+////					svgPathsStart.push_back(v[j]);
+//					
+//				}
+//				if(j == v.size() - 1) {
+////					svgPathsEnd.push_back(v[j]);
+//					
+//				}
 			}
 			
- 			ildaFrame.addPoly(o, svgPaths[i].getStrokeColor());
+ 			ildaFrame->addPoly(o, svgPaths[i].getStrokeColor());
 //			svgPathsToPolyIndices.push_back(i);
 //			cout << "strokeColor: " << p.getStrokeColor() << "  fill color: " << p.getFillColor() <<endl;
 		}
- 	}
+	}
+
 	
 	
 	
-	ildaFrameParamListener = ildaFrame.params.parameterChangedE().newListener([&](ofAbstractParameter&){
+	ildaFrameParamListener = getFrameSettings()->parameterChangedE().newListener([&](ofAbstractParameter&){
 		updateFromIldaFrame();
 	});
 	
@@ -422,7 +530,7 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath
 //		frame->normalizedPath.clear();
 //		frame->normalizedPath = frame->path;
 //		for(auto& v: frame->normalizedPath.getVertices()){
-//			ofxIldaFileFrame::normalizePoint(v);
+//			ofxIlda::FileFrame::normalizePoint(v);
 //		}
 	
 		cout << "frame from min " << from_min << endl;
@@ -524,7 +632,7 @@ shared_ptr<ofxIldaFileFrame> ofxIldaFile::newFrameFromSVG(const string& filepath
 		frame->normalizedPath.clear();
 		frame->normalizedPath = frame->path;
 		for(auto& v: frame->normalizedPath.getVertices()){
-			ofxIldaFileFrame::normalizePoint(v);
+			ofxIlda::FileFrame::normalizePoint(v);
 		}
 		
 		cout << "frame from min " << from_min << endl;

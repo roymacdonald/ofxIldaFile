@@ -25,6 +25,9 @@ class ofApp : public ofBaseApp{
 
 	
 
-	ofxIldaFile ildaFile;
-	
+	ofxIlda::File ildaFile;
+
+	size_t vertIndex = 0;
+	size_t svgPathIndex = 0;
+	void printCurrentSvgPath();
 };

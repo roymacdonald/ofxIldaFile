@@ -1,5 +1,5 @@
 //
-//  ofxIldaFileDirectory.cpp
+//  ofxIlda::FileDirectory.cpp
 //  example
 //
 //  Created by Roy Macdonald on 7/21/19.
@@ -8,11 +8,7 @@
 
 #include "ofxIldaFileDirectory.h"
 //--------------------------------------------------------------
-ofxIldaFileDirectory::ofxIldaFileDirectory(){
-//	ildaFiles.resize(1);
-}
-//--------------------------------------------------------------
-bool ofxIldaFileDirectory::loadDialog(bool preloadAll){
+bool ofxIlda::FileDirectory::loadDialog(bool preloadAll){
 	auto r = ofSystemLoadDialog("Select a folder that contains .ild files", true);
 	if(r.bSuccess){
 		return loadDir(r.getPath(), preloadAll);
@@ -20,7 +16,7 @@ bool ofxIldaFileDirectory::loadDialog(bool preloadAll){
 	return false;
 }
 //--------------------------------------------------------------
-bool ofxIldaFileDirectory::loadDir(const string& dirPath, bool preloadAll){
+bool ofxIlda::FileDirectory::loadDir(const string& dirPath, bool preloadAll){
 	ofFile d (dirPath);
 	if(d.isDirectory()){
 		if(findPrgFile(dirPath)){
@@ -35,27 +31,27 @@ bool ofxIldaFileDirectory::loadDir(const string& dirPath, bool preloadAll){
 					ildaFiles.resize(dir.size());
 					bool bLoadded = true;
 					for(size_t i = 0; i < ildaFiles.size(); i++){
-//						ildaFiles[i] = make_shared<ofxIldaFile>();
+//						ildaFiles[i] = make_shared<ofxIlda::File>();
 						bLoadded &= loadFileAtIndex(i, dir.getPath(i));
 					}
 					dir.close();
 					return bLoadded;// will return false if any file loaded incorrectly
 				}else{
 //					ildaFiles.resize(1);
-//					ildaFiles[0] = make_shared<ofxIldaFile>();
+//					ildaFiles[0] = make_shared<ofxIlda::File>();
 					return loadFileAtIndex(0);
 				}
 			}
 		}else{
-			ofLogWarning("ofxIldaFileDirectory::loadDir") << "no .prg file in directory " << dirPath;
+			ofLogWarning("ofxIlda::FileDirectory::loadDir") << "no .prg file in directory " << dirPath;
 		}
 	}else{
-		ofLogWarning("ofxIldaFileDirectory::loadDir") << dirPath << " is not a directory.";
+		ofLogWarning("ofxIlda::FileDirectory::loadDir") << dirPath << " is not a directory.";
 	}
 	return false;
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::saveDir(string dirPath){
+void ofxIlda::FileDirectory::saveDir(string dirPath){
 	
 	ofFile d (dirPath);
 	if(d.isDirectory() && ildaFiles.size() > 0){
@@ -64,7 +60,7 @@ void ofxIldaFileDirectory::saveDir(string dirPath){
 		dirPath = ofFilePath::getPathForDirectory(dirPath);
 		for(size_t i = 0; i < ildaFiles.size(); i++){
 			if(ildaFiles[i]){
-				string validPath = ofxIldaFile::getValidPath(dirPath + ildaFiles[i]->getName() + ".ild");
+				string validPath = ofxIlda::File::getValidPath(dirPath + ildaFiles[i]->getName() + ".ild");
 			
 				ildaFiles[i]->save(validPath);
 			
@@ -82,12 +78,12 @@ void ofxIldaFileDirectory::saveDir(string dirPath){
 		
 		
 	}else{
-		ofLogWarning("ofxIldaFileDirectory::saveDir") << dirPath << " is not a directory.";
+		ofLogWarning("ofxIlda::FileDirectory::saveDir") << dirPath << " is not a directory.";
 	}
 }
 
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::saveDialog(){
+void ofxIlda::FileDirectory::saveDialog(){
 	auto r = ofSystemLoadDialog("Select a folder to save .ild files", true);
 	if(r.bSuccess){
 		return saveDir(r.getPath());
@@ -95,7 +91,7 @@ void ofxIldaFileDirectory::saveDialog(){
 	return false;
 }
 //--------------------------------------------------------------
-bool ofxIldaFileDirectory::findPrgFile(const string& dirPath){
+bool ofxIlda::FileDirectory::findPrgFile(const string& dirPath){
 	ofDirectory d;
 	d.allowExt("prg");
 	d.listDir(dirPath);
@@ -113,7 +109,7 @@ bool ofxIldaFileDirectory::findPrgFile(const string& dirPath){
 	return false;
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::readPrgFile(const string& filepath){
+void ofxIlda::FileDirectory::readPrgFile(const string& filepath){
 	if(ofFilePath::getFileExt(filepath)=="prg"){
 		auto buf = ofBufferFromFile(filepath, false);
 		if(buf.size() == 0) return;
@@ -124,13 +120,13 @@ void ofxIldaFileDirectory::readPrgFile(const string& filepath){
 			if(s.size() >= 3){
 				prgMap[ofTrim(s[0])] = IldaPrgm(ofToInt(ofTrim(s[1])), ofToFloat(ofTrim(s[2])));
 			}else{
-				ofLogWarning("ofxIldaFileDirectory::readPrgFile") << "wrong line : " << l;
+				ofLogWarning("ofxIlda::FileDirectory::readPrgFile") << "wrong line : " << l;
 			}
 		}
 	}
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::loadNextFile(){
+void ofxIlda::FileDirectory::loadNextFile(){
 	if(dir.size()){
 		(++fileIndex) %= dir.size();
 		//		ildaFile.load(dir.getPath(fileIndex));
@@ -138,7 +134,7 @@ void ofxIldaFileDirectory::loadNextFile(){
 	}
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::loadPrevFile(){
+void ofxIlda::FileDirectory::loadPrevFile(){
 //	if(dir.size()){
 	decrementAndWrap(fileIndex, size());
 //		if(fileIndex == 0){
@@ -152,7 +148,7 @@ void ofxIldaFileDirectory::loadPrevFile(){
 	
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::close(){
+void ofxIlda::FileDirectory::close(){
 	dir.close();
 	ildaFiles.clear();
 //	ildaFiles.resize(1);
@@ -160,14 +156,14 @@ void ofxIldaFileDirectory::close(){
 	fileIndex = 0;
 }
 //--------------------------------------------------------------
-size_t ofxIldaFileDirectory::size(){
+size_t ofxIlda::FileDirectory::size(){
 	if(bFilesPreloaded){
 		return ildaFiles.size();
 	}
 	return dir.size();
 }
 //--------------------------------------------------------------
-//bool ofxIldaFileDirectory::loadFileByName(const string& name){
+//bool ofxIlda::FileDirectory::loadFileByName(const string& name){
 //	size_t n = (bFilesPreloaded? ildaFiles.size() : dir.size());
 //	for(int i = 0; i < n; i++){
 //		if(bFilesPreloaded){
@@ -178,7 +174,7 @@ size_t ofxIldaFileDirectory::size(){
 //	}
 //}
 ////--------------------------------------------------------------
-//bool ofxIldaFileDirectory::loadFile(ofxIldaFile& file, const string& filepath){
+//bool ofxIlda::FileDirectory::loadFile(ofxIlda::File& file, const string& filepath){
 ////	cout << __PRETTY_FUNCTION__ << endl;
 //	if(file.load(filepath)){
 //		auto prg = prgMap.find(ofFilePath::getFileName(filepath));
@@ -191,7 +187,7 @@ size_t ofxIldaFileDirectory::size(){
 //	return false;
 //}
 //--------------------------------------------------------------
-bool ofxIldaFileDirectory::loadFileAtIndex(size_t index, string filepath){
+bool ofxIlda::FileDirectory::loadFileAtIndex(size_t index, string filepath){
 	auto fIndex = index;
 	if(!bFilesPreloaded){
 		if(index >= dir.size()) return false;
@@ -201,7 +197,7 @@ bool ofxIldaFileDirectory::loadFileAtIndex(size_t index, string filepath){
 		ildaFiles.resize(fIndex+1);
 	}
 	if(!ildaFiles[fIndex]){
-		ildaFiles[fIndex] = make_shared<ofxIldaFile>();
+		ildaFiles[fIndex] = make_shared<ofxIlda::File>();
 	}
 	
 	if(filepath.empty()){
@@ -226,8 +222,8 @@ bool ofxIldaFileDirectory::loadFileAtIndex(size_t index, string filepath){
 			if(ildaFiles[fIndex]->load(filepath)){
 				auto prg = prgMap.find(ofFilePath::getFileName(filepath));
 				if(prg != prgMap.end()){
-					ildaFiles[fIndex]->frameduration = prg->second.frameDuration;
-					ildaFiles[fIndex]->scanrate =  prg->second.scanRate;
+					ildaFiles[fIndex]->setFrameDuration(prg->second.frameDuration);
+					ildaFiles[fIndex]->setScanRate(prg->second.scanRate);
 				}
 				fileIndex = fIndex;
 				return true;
@@ -237,19 +233,19 @@ bool ofxIldaFileDirectory::loadFileAtIndex(size_t index, string filepath){
 	return false;
 }
 //--------------------------------------------------------------
-size_t ofxIldaFileDirectory::getCurrentFileIndex(){
+size_t ofxIlda::FileDirectory::getCurrentFileIndex(){
 	return fileIndex;
 }
 //--------------------------------------------------------------
-std::vector<std::shared_ptr<ofxIldaFile>>& ofxIldaFileDirectory::getIldaFiles(){
+std::vector<std::shared_ptr<ofxIlda::File>>& ofxIlda::FileDirectory::getIldaFiles(){
 	return ildaFiles;
 }
 //--------------------------------------------------------------
-const std::vector<std::shared_ptr<ofxIldaFile>>& ofxIldaFileDirectory::getIldaFiles() const{
+const std::vector<std::shared_ptr<ofxIlda::File>>& ofxIlda::FileDirectory::getIldaFiles() const{
 	return ildaFiles;
 }
 //--------------------------------------------------------------
-std::shared_ptr<ofxIldaFile>  ofxIldaFileDirectory::getCurrentFile(){
+std::shared_ptr<ofxIlda::File>  ofxIlda::FileDirectory::getCurrentFile(){
 	auto fIndex = bFilesPreloaded?fileIndex:0;
 	if(fIndex < ildaFiles.size()){
 		return ildaFiles[fIndex];
@@ -258,21 +254,21 @@ std::shared_ptr<ofxIldaFile>  ofxIldaFileDirectory::getCurrentFile(){
 }
 
 //--------------------------------------------------------------
-bool ofxIldaFileDirectory::isFilesPreloaded(){
+bool ofxIlda::FileDirectory::isFilesPreloaded(){
 	return bFilesPreloaded;
 }
 //--------------------------------------------------------------
-void ofxIldaFileDirectory::drawCurrentFile(){
+void ofxIlda::FileDirectory::drawCurrentFile(){
 	auto current = getCurrentFile();
 	if(current){
 			current->draw();
 	}else{
-		ofDrawBitmapStringHighlight("ofxIldaFileDirectory::draw -> can't draw. Current Ilda file is null", 20,20, ofColor(0, 120));
+		ofDrawBitmapStringHighlight("ofxIlda::FileDirectory::draw -> can't draw. Current Ilda file is null", 20,20, ofColor(0, 120));
 	}
 	
 }
 //--------------------------------------------------------------
-string ofxIldaFileDirectory::getCurrentFileInfo(){
+string ofxIlda::FileDirectory::getCurrentFileInfo(){
 	stringstream ss;
 	auto current = getCurrentFile();
 	if(current){
@@ -288,7 +284,7 @@ string ofxIldaFileDirectory::getCurrentFileInfo(){
 	return ss.str();
 }
 //--------------------------------------------------------------
-std::shared_ptr<ofxIldaFile> ofxIldaFileDirectory::addNewFile(const string& name, float frameDuration, int scanrate){
-	ildaFiles.push_back(make_shared<ofxIldaFile>(name, frameDuration, scanrate));
+std::shared_ptr<ofxIlda::File> ofxIlda::FileDirectory::addNewFile(const string& name, float frameDuration, int scanrate){
+	ildaFiles.push_back(make_shared<ofxIlda::File>(name, frameDuration, scanrate));
 	return ildaFiles.back();
 }
