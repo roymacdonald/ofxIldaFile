@@ -16,6 +16,15 @@ void ofApp::draw(){
 	ofSetColor(255);
 	ildaFile.draw();
 	
+	
+	stringstream ss;
+	ss << "Press [ key ] to:\n";
+	ss << " [ l ] : load a single .ild file.\n";
+	ss << " [ s ] : save a single .ild file.\n";
+	ss << endl;
+	ss << "Current file : " << ildaFile.getFilepath() << endl;
+	
+	
 	auto currentFrame = ildaFile.getCurrentFrame();
 	if(currentFrame){
 		
@@ -37,8 +46,9 @@ void ofApp::draw(){
 			ofDrawCircle(v[i], d*3);
 		}
 		
-		
+		ss << "vertIndex : " << vertIndex <<endl;
 		if(v.size() > 0){
+		
 			ofPushStyle();
 			//			ofSetColor(c[vertIndex]);
 			
@@ -48,6 +58,8 @@ void ofApp::draw(){
 			ofDrawCircle(v[vertIndex], d*4);
 			
 			ofPopStyle();
+			ss << "vert Pos : " << v[vertIndex] <<endl;
+			ss << "vert Col : " << c[vertIndex] <<endl;
 		}
 		
 		ofPopMatrix();
@@ -78,14 +90,9 @@ void ofApp::draw(){
 	
 	
 	
-	stringstream ss;
-	ss << "Press [ key ] to:\n";
-	ss << " [ l ] : load a single .ild file.\n";
-	ss << " [ s ] : save a single .ild file.\n";
-	ss << endl;
-	ss << "Current file : " << ildaFile.getFilepath() << endl;
+
+
 	
-	ss << "vertIndex : " << vertIndex <<endl;
 	if(currentFrame){
 		ss << *currentFrame;
 	}
@@ -131,10 +138,10 @@ void ofApp::keyPressed(int key){
 }
 //--------------------------------------------------------------
 void ofApp::printCurrentSvgPath(){
-	auto&p = ildaFile.svgPaths;
+	auto& p = ildaFile.svgPaths;
 	
 	if(svgPathIndex < p.size()){
-		cout << p[svgPathIndex] << endl;
+//		cout << p[svgPathIndex] << endl;
 	}
 }
 //--------------------------------------------------------------
@@ -154,6 +161,12 @@ void ofApp::keyReleased(int key){
 		}
 	}else if(key == 's'){
 		ildaFile.saveDialog();
+	}else if(key == '.'){
+		ildaFile.setPaused(true);
+		ildaFile.nextFrame();
+	}else if(key == ','){
+		ildaFile.setPaused(true);
+		ildaFile.prevFrame();
 	}else if(key == ' '){
 		ildaFile.setPaused(!ildaFile.isPaused());
 	}
