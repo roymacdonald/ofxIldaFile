@@ -219,12 +219,23 @@ void ofxIlda::File::draw(const ofRectangle & viewport, bool bDrawBounds){
 		if(!bPaused){
 			if( ofGetElapsedTimef() - lastFrameTime > frameduration){
 				if(lastFrameTime != 0){
-					(++ currentFrame) %= frames.size();
+					nextFrame();
+//					(++ currentFrame) %= frames.size();
 				}
 				lastFrameTime = ofGetElapsedTimef();
 			}
 		}
 	}
+}
+//--------------------------------------------------------------
+void ofxIlda::File::nextFrame(){
+	(++ currentFrame) %= frames.size();
+	lastFrameTime = ofGetElapsedTimef();
+}
+//--------------------------------------------------------------
+void ofxIlda::File::prevFrame(){
+	currentFrame = (currentFrame - 1 + frames.size()) %frames.size();
+	lastFrameTime = ofGetElapsedTimef();
 }
 //--------------------------------------------------------------
 void ofxIlda::File::reset(){

@@ -88,6 +88,8 @@ public:
 	
 	vector <glm::vec3> splitPoints, transformedSplitPoints;
 	
+	void nextFrame();
+	void prevFrame();
 protected:
 
 	
