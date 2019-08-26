@@ -7,7 +7,7 @@
 //
 
 #include "ofxIldaFileFrame.h"
-
+//#define DISABLE_BLANKING
 
 ofxIlda::FileFrame::FileFrame(const ofxIlda::FileFormat& format, const string& frameName, const string& companyName){
 	setup(format, frameName, companyName);
@@ -149,6 +149,7 @@ void ofxIlda::FileFrame::decodeData(ofBuffer& buffer, size_t num_points){
 		ofColor  c;
 		int colorOffset = getColorOffset();
 		if(ifFormatIndexedColor(format)){
+//			cout << "color index: " << (int)d[i+ colorOffset] <<endl;
 			c = ilda_standard_color_palette()[d[i+ colorOffset]];
 		}else{
 			c.r = d[i+ colorOffset];
@@ -161,6 +162,7 @@ void ofxIlda::FileFrame::decodeData(ofBuffer& buffer, size_t num_points){
 			char status_code = d[i+statusOffset];
 			if(((status_code >> 6) & 0x01) == 1){
 				c.a = 0;
+//				cout << "blanked " <<endl;
 #ifndef OFX_ILDA_FILE_FRAME_DEBUG
 			}
 #else
@@ -242,9 +244,12 @@ void ofxIlda::FileFrame::encodeData(ofBuffer& buffer){
 		int statusOffset = getStatusCodeOffset();
 		if(statusOffset > 0){
 			char status_code = 0;
-//			if(c.a == 0){
-//				status_code |= (1 << 6) & 0xFF;
-//			}
+#ifndef DISABLE_BLANKING
+			if(c.a == 0){
+//				cout << "disable blanking" <<endl;
+				status_code |= (1 << 6) & 0xFF;
+			}
+#endif
 			if(i == verts.size()-1){
 				status_code |= (1 << 7) & 0xFF;
 			}
