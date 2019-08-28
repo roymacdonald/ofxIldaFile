@@ -19,7 +19,7 @@ bool ofxIlda::FileDirectory::loadDialog(bool preloadAll){
 bool ofxIlda::FileDirectory::loadDir(const string& dirPath, bool preloadAll){
 	ofFile d (dirPath);
 	if(d.isDirectory()){
-		if(findPrgFile(dirPath)){
+		if(findPrgFile(dirPath, prgMap) ){
 			dir.close();
 			dir.allowExt("ild");
 			dir.listDir(dirPath);
@@ -31,14 +31,11 @@ bool ofxIlda::FileDirectory::loadDir(const string& dirPath, bool preloadAll){
 					ildaFiles.resize(dir.size());
 					bool bLoadded = true;
 					for(size_t i = 0; i < ildaFiles.size(); i++){
-//						ildaFiles[i] = make_shared<ofxIlda::File>();
 						bLoadded &= loadFileAtIndex(i, dir.getPath(i));
 					}
 					dir.close();
 					return bLoadded;// will return false if any file loaded incorrectly
 				}else{
-//					ildaFiles.resize(1);
-//					ildaFiles[0] = make_shared<ofxIlda::File>();
 					return loadFileAtIndex(0);
 				}
 			}
@@ -56,26 +53,16 @@ void ofxIlda::FileDirectory::saveDir(string dirPath){
 	ofFile d (dirPath);
 	if(d.isDirectory() && ildaFiles.size() > 0){
 		
-		ofBuffer prgBuffer;
+//		ofBuffer prgBuffer;
 		dirPath = ofFilePath::getPathForDirectory(dirPath);
 		for(size_t i = 0; i < ildaFiles.size(); i++){
 			if(ildaFiles[i]){
 				string validPath = ofxIlda::File::getValidPath(dirPath + ildaFiles[i]->getName() + ".ild");
-			
 				ildaFiles[i]->save(validPath);
-			
-				string prg = ofFilePath::getFileName(validPath)+ "," + ofToString(ildaFiles[i]->getScanRate())+ "," + ofToString(ildaFiles[i]->getFrameDuration(), 1) + "\n";
-				
-				prgBuffer.append(prg);
-				cout << prg;
 			}
 		}
-		
-		string bufferPath = dirPath + ofFilePath::getBaseName(ofFilePath::removeTrailingSlash(dirPath))+".prg";
-		cout << ofFilePath::getBaseName(dirPath) << endl;
-		cout << bufferPath << endl;
-		ofBufferToFile( bufferPath, prgBuffer, false);
-		
+		auto prg = makePrgMapFromIldaFiles(ildaFiles);
+		createPrgFile(dirPath,prg);
 		
 	}else{
 		ofLogWarning("ofxIlda::FileDirectory::saveDir") << dirPath << " is not a directory.";
@@ -90,41 +77,7 @@ void ofxIlda::FileDirectory::saveDialog(){
 	}
 	return false;
 }
-//--------------------------------------------------------------
-bool ofxIlda::FileDirectory::findPrgFile(const string& dirPath){
-	ofDirectory d;
-	d.allowExt("prg");
-	d.listDir(dirPath);
-	auto dirBaseName = ofFilePath::getBaseName(dirPath);
-	if(d.size()){
-		for(int i = 0; i < d.size(); i++){
-			if(ofFilePath::getBaseName(d.getPath(i)) == dirBaseName){
-				readPrgFile(d.getPath(i));
-				return true;
-			}
-		}
-		readPrgFile(d.getPath(0));
-		return true;
-	}
-	return false;
-}
-//--------------------------------------------------------------
-void ofxIlda::FileDirectory::readPrgFile(const string& filepath){
-	if(ofFilePath::getFileExt(filepath)=="prg"){
-		auto buf = ofBufferFromFile(filepath, false);
-		if(buf.size() == 0) return;
-		prgMap.clear();
-		
-		for(auto& l: buf.getLines()){
-			auto s = ofSplitString(l, ",");
-			if(s.size() >= 3){
-				prgMap[ofTrim(s[0])] = IldaPrgm(ofToInt(ofTrim(s[1])), ofToFloat(ofTrim(s[2])));
-			}else{
-				ofLogWarning("ofxIlda::FileDirectory::readPrgFile") << "wrong line : " << l;
-			}
-		}
-	}
-}
+
 //--------------------------------------------------------------
 void ofxIlda::FileDirectory::loadNextFile(){
 	if(dir.size()){
@@ -163,30 +116,6 @@ size_t ofxIlda::FileDirectory::size(){
 	return dir.size();
 }
 //--------------------------------------------------------------
-//bool ofxIlda::FileDirectory::loadFileByName(const string& name){
-//	size_t n = (bFilesPreloaded? ildaFiles.size() : dir.size());
-//	for(int i = 0; i < n; i++){
-//		if(bFilesPreloaded){
-//			if(ildaFiles[i].getName() == name){
-//
-//			}
-//		}
-//	}
-//}
-////--------------------------------------------------------------
-//bool ofxIlda::FileDirectory::loadFile(ofxIlda::File& file, const string& filepath){
-////	cout << __PRETTY_FUNCTION__ << endl;
-//	if(file.load(filepath)){
-//		auto prg = prgMap.find(ofFilePath::getFileName(filepath));
-//		if(prg != prgMap.end()){
-//			file.frameduration = prg->second.frameDuration;
-//			file.scanrate =  prg->second.scanRate;
-//		}
-//		return true;
-//	}
-//	return false;
-//}
-//--------------------------------------------------------------
 bool ofxIlda::FileDirectory::loadFileAtIndex(size_t index, string filepath){
 	auto fIndex = index;
 	if(!bFilesPreloaded){
@@ -212,13 +141,6 @@ bool ofxIlda::FileDirectory::loadFileAtIndex(size_t index, string filepath){
 	}
 
 	if(ildaFiles[fIndex]){
-//		if(ildaFiles[fIndex]->isLoaded()){
-//			fileIndex = fIndex;
-//			return true;
-//		}else
-//		if(index < dir.size()){
-//			if(loadFile(*ildaFiles[fIndex], dir.getPath(index))){
-//			auto fPath = dir.getPath(index);
 			if(ildaFiles[fIndex]->load(filepath)){
 				auto prg = prgMap.find(ofFilePath::getFileName(filepath));
 				if(prg != prgMap.end()){
@@ -226,6 +148,7 @@ bool ofxIlda::FileDirectory::loadFileAtIndex(size_t index, string filepath){
 					ildaFiles[fIndex]->setScanRate(prg->second.scanRate);
 				}
 				fileIndex = fIndex;
+				std::cout << "loaded ilda file :" << filepath << std::endl;
 				return true;
 			}
 //		}
@@ -287,4 +210,90 @@ string ofxIlda::FileDirectory::getCurrentFileInfo(){
 std::shared_ptr<ofxIlda::File> ofxIlda::FileDirectory::addNewFile(const string& name, float frameDuration, int scanrate){
 	ildaFiles.push_back(make_shared<ofxIlda::File>(name, frameDuration, scanrate));
 	return ildaFiles.back();
+}
+//--------------------------------------------------------------
+std::map<string, ofxIlda::IldaPrgm> & ofxIlda::FileDirectory::getPrgMap(){
+	return prgMap;
+}
+//--------------------------------------------------------------
+const std::map<string, ofxIlda::IldaPrgm> & ofxIlda::FileDirectory::getPrgMap() const{
+	return prgMap;
+}
+//--------------------------------------------------------------
+bool ofxIlda::FileDirectory::findPrgFile(const string& dirPath, std::map<string, ofxIlda::IldaPrgm>& prgMap){
+	ofDirectory d;
+	d.allowExt("prg");
+	d.listDir(dirPath);
+	auto dirBaseName = ofFilePath::getBaseName(dirPath);
+	if(d.size()){
+		for(int i = 0; i < d.size(); i++){
+			if(ofFilePath::getBaseName(d.getPath(i)) == dirBaseName){
+				if(readPrgFile(d.getPath(i),prgMap))return true;
+			}
+		}
+		return  readPrgFile(d.getPath(0),prgMap);
+	}
+	return false;
+}
+//--------------------------------------------------------------
+bool ofxIlda::FileDirectory::readPrgFile(const string& filepath, std::map<string, ofxIlda::IldaPrgm>& prgMap){
+	if(ofToLower(ofFilePath::getFileExt(filepath))=="prg"){
+		auto buf = ofBufferFromFile(filepath, false);
+		if(buf.size() == 0) return false;
+		
+		prgMap.clear();
+		
+		for(auto& l: buf.getLines()){
+			auto s = ofSplitString(l, ",");
+			if(s.size() >= 3){
+				prgMap[ofTrim(s[0])] = IldaPrgm(ofToInt(ofTrim(s[1])), ofToFloat(ofTrim(s[2])));
+			}else{
+				ofLogWarning("ofxIlda::FileDirectory::readPrgFile") << "wrong line : " << l;
+			}
+		}
+		return prgMap.size() > 0;
+	}
+	return false;
+}
+//--------------------------------------------------------------
+void ofxIlda::FileDirectory::createPrgFile(string dirpath, std::map<string, ofxIlda::IldaPrgm>& prgMap){
+	cout << "ofxIlda::FileDirectory::createPrgFile" << endl;
+	cout << "dirpath: " << dirpath << endl;
+	
+	ofBuffer prgBuffer;
+	dirpath = ofFilePath::getPathForDirectory(dirpath);
+	cout << "dirpath: " << dirpath << endl;
+	for(auto& p : prgMap){
+		string filename = p.first;
+		if(ofToLower(ofFilePath::getFileExt(filename)) != "ild"){
+			filename += ".ild";
+		}
+		
+			string prg = ofFilePath::getFileName(filename)+ "," + ofToString(p.second.scanRate)+ "," + ofToString(p.second.frameDuration, 1) + "\n";
+			
+			prgBuffer.append(prg);
+			cout << prg;
+	}
+	
+	string bufferPath = dirpath + ofFilePath::getBaseName(ofFilePath::removeTrailingSlash(dirpath))+".prg";
+	cout << ofFilePath::getBaseName(dirpath) << endl;
+	cout << bufferPath << endl;
+	ofBufferToFile( bufferPath, prgBuffer, false);
+}
+//--------------------------------------------------------------
+void ofxIlda::FileDirectory::updatePrgMap(std::string filename, std::map<string, ofxIlda::IldaPrgm>& prgMap, const size_t& scanRate, const float& frameDuration){
+	filename = ofFilePath::getFileName(filename);// this is to make sure that the filename is properly formated
+	prgMap[filename].frameDuration = frameDuration;
+	prgMap[filename].scanRate = scanRate;
+}
+//--------------------------------------------------------------
+std::map<string, ofxIlda::IldaPrgm> ofxIlda::FileDirectory::makePrgMapFromIldaFiles(const std::vector<std::shared_ptr<ofxIlda::File>>& ildaFiles){
+	
+	std::map<string, ofxIlda::IldaPrgm> prgMap;
+	for(size_t i = 0; i < ildaFiles.size(); i++){
+		if(ildaFiles[i]){
+			updatePrgMap(ildaFiles[i]->getName() + ".ild", prgMap, ildaFiles[i]->getScanRate(), ildaFiles[i]->getFrameDuration());
+		}
+	}
+	return prgMap;
 }

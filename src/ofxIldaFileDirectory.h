@@ -9,6 +9,15 @@
 #pragma once
 #include "ofxIldaFile.h"
 namespace ofxIlda{
+	class IldaPrgm{
+	public:
+		IldaPrgm(){}
+		IldaPrgm(const size_t& _scanRate, const float& _frameDuration):scanRate(_scanRate), frameDuration(_frameDuration){}
+		
+		size_t scanRate;
+		float frameDuration;
+	};
+	
 	class FileDirectory{
 	public:
 		FileDirectory(){}
@@ -43,7 +52,16 @@ namespace ofxIlda{
 		std::vector<std::shared_ptr<ofxIlda::File>>& getIldaFiles();
 		const std::vector<std::shared_ptr<ofxIlda::File>>& getIldaFiles() const;
 		
-		//	bool loadFileByName(const string& name);
+		std::map<string, IldaPrgm> & getPrgMap();
+		const std::map<string, IldaPrgm> & getPrgMap() const;
+		
+		static void updatePrgMap(std::string filename, std::map<string, IldaPrgm>& prgMap, const size_t& scanRate, const float& frameDuration);
+		
+		static bool findPrgFile(const string& dirpath, std::map<string, IldaPrgm>& prgMap);
+		static bool readPrgFile(const string& filepath, std::map<string, IldaPrgm>& prgMap);
+		static void createPrgFile(string dirpath, std::map<string, IldaPrgm>& prgMap);
+		
+		static std::map<string, IldaPrgm> makePrgMapFromIldaFiles(const std::vector<std::shared_ptr<ofxIlda::File>>& ildaFiles);
 		
 	protected:
 		
@@ -51,17 +69,7 @@ namespace ofxIlda{
 		
 		std::vector<std::shared_ptr<ofxIlda::File>> ildaFiles;
 		
-		bool findPrgFile(const string& dirpath);
-		void readPrgFile(const string& filepath);
 		
-		class IldaPrgm{
-		public:
-			IldaPrgm(){}
-			IldaPrgm(const size_t& _scanRate, const float& _frameDuration):scanRate(_scanRate), frameDuration(_frameDuration){}
-			
-			size_t scanRate;
-			float frameDuration;
-		};
 		std::map<string, IldaPrgm> prgMap;
 		
 		ofDirectory dir;
